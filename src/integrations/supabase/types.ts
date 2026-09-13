@@ -412,6 +412,7 @@ export type Database = {
           conjuge_outorgante: string | null
           conjuge_transm: string | null
           conjuge_usu: string | null
+          corrections: Json
           created_at: string
           created_by: string
           credor: string | null
@@ -428,6 +429,7 @@ export type Database = {
           estado_civil: string | null
           extracted: Json
           extraction_source: string
+          field_evidence: Json
           file_extension: string | null
           file_name: string | null
           id: string
@@ -442,6 +444,7 @@ export type Database = {
           matriculas_abertas: string[]
           natureza: string
           numero_logradouro: string | null
+          ocr_quality: Json
           onus: Json
           outorgado: string | null
           outorgante: string | null
@@ -457,6 +460,7 @@ export type Database = {
           selo: string | null
           serviente: string | null
           situacao_titulares: string | null
+          source_pages: Json
           source_type: string
           telefone: string | null
           tipo_ato: string | null
@@ -492,6 +496,7 @@ export type Database = {
           conjuge_outorgante?: string | null
           conjuge_transm?: string | null
           conjuge_usu?: string | null
+          corrections?: Json
           created_at?: string
           created_by: string
           credor?: string | null
@@ -508,6 +513,7 @@ export type Database = {
           estado_civil?: string | null
           extracted?: Json
           extraction_source?: string
+          field_evidence?: Json
           file_extension?: string | null
           file_name?: string | null
           id?: string
@@ -522,6 +528,7 @@ export type Database = {
           matriculas_abertas?: string[]
           natureza?: string
           numero_logradouro?: string | null
+          ocr_quality?: Json
           onus?: Json
           outorgado?: string | null
           outorgante?: string | null
@@ -537,6 +544,7 @@ export type Database = {
           selo?: string | null
           serviente?: string | null
           situacao_titulares?: string | null
+          source_pages?: Json
           source_type?: string
           telefone?: string | null
           tipo_ato?: string | null
@@ -572,6 +580,7 @@ export type Database = {
           conjuge_outorgante?: string | null
           conjuge_transm?: string | null
           conjuge_usu?: string | null
+          corrections?: Json
           created_at?: string
           created_by?: string
           credor?: string | null
@@ -588,6 +597,7 @@ export type Database = {
           estado_civil?: string | null
           extracted?: Json
           extraction_source?: string
+          field_evidence?: Json
           file_extension?: string | null
           file_name?: string | null
           id?: string
@@ -602,6 +612,7 @@ export type Database = {
           matriculas_abertas?: string[]
           natureza?: string
           numero_logradouro?: string | null
+          ocr_quality?: Json
           onus?: Json
           outorgado?: string | null
           outorgante?: string | null
@@ -617,6 +628,7 @@ export type Database = {
           selo?: string | null
           serviente?: string | null
           situacao_titulares?: string | null
+          source_pages?: Json
           source_type?: string
           telefone?: string | null
           tipo_ato?: string | null

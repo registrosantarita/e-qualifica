@@ -29,6 +29,21 @@ export type IndexAto = {
   cancelado_por?: string | null;
 };
 
+export type IndexPagina = {
+  nome: string;
+  matricula: string | null;
+  folha: string | null;
+  ordem: number;
+  qualidade: number;
+  alertas: string[];
+};
+
+export type IndexEvidencia = {
+  ato: string | null;
+  trecho: string;
+  confianca: "alta" | "media" | "baixa";
+};
+
 
 export type IndexCadastros = {
   /** Comum a urbano e rural. */
@@ -132,6 +147,8 @@ export type MatriculaIndexada = {
   onus: IndexAto[];
   /** Ônus baixados/cancelados, mantidos para auditoria. */
   onus_cancelados: IndexAto[];
+  /** Evidência literal usada para os principais campos sugeridos. */
+  evidencias: Record<string, IndexEvidencia>;
 };
 
 
@@ -153,6 +170,60 @@ const limpar = (v: string | undefined | null): string | null => {
 };
 
 const digitos = (v: string): string => v.replace(/\D/g, "");
+
+/** Corrige somente rótulos registrais inequívocos; nomes e números nunca são adivinhados. */
+export function normalizarTextoRegistral(texto: string): string {
+  return texto
+    .replace(/\r/g, "")
+    .replace(/\bA[MN]CRA\b/gi, "INCRA")
+    .replace(/\bNIRE(?=\s*[:.]?\s*0[.,]\d)/gi, "NIRF")
+    .replace(/\bMATR[IÍ]CULA\s*[-–—]?\s*[|Il]\s*\(um\)/gi, "MATRÍCULA 1")
+    .replace(/\bA\s*V\s*[.\-]\s*(\d+)/gi, "AV.$1")
+    .replace(/\b(?:n[º°]|n[oO])\b/g, "nº")
+    .replace(/[ \t]+\n/g, "\n");
+}
+
+export function avaliarQualidadeOcr(texto: string): { score: number; alertas: string[] } {
+  const alertas: string[] = [];
+  const limpo = texto.trim();
+  if (limpo.length < 200) alertas.push("Pouco texto reconhecido");
+  const simbolos = (limpo.match(/[|{}<>~=]{1,}|[;]{4,}/g) ?? []).length;
+  const palavras = limpo.match(/[A-Za-zÀ-ÿ]{3,}/g)?.length ?? 0;
+  if (simbolos > Math.max(3, palavras * 0.03)) alertas.push("Excesso de símbolos do OCR");
+  if (/\b(?:ANCRA|CAPELLAR!|PROTOCOL0|MATR[1l]CULA)\b/i.test(limpo)) alertas.push("Caracteres possivelmente trocados");
+  if (!/\b(?:R|AV)\s*[.\-/]?\s*\d+/i.test(limpo)) alertas.push("Marcadores de atos pouco legíveis");
+  return { score: Math.max(0, 100 - alertas.length * 22), alertas };
+}
+
+export function identificarPaginaMatricula(textoBruto: string, nome = "página"): IndexPagina {
+  const texto = normalizarTextoRegistral(textoBruto).replace(/\s+/g, " ");
+  const referenciasAtos = [...texto.matchAll(/\b(?:R|AV)\s*[.\-/]?\s*\d+\s*[.\-/]\s*M\s*[.\-]?\s*(\d{1,3}(?:\.\d{3})*|\d+)\s*[:=]/gi)]
+    .map((m) => m[1] ?? "")
+    .filter(Boolean);
+  const matriculaDosAtos = referenciasAtos.length
+    ? [...new Set(referenciasAtos)].sort((a, b) => referenciasAtos.filter((v) => v === b).length - referenciasAtos.filter((v) => v === a).length)[0]
+    : null;
+  const matriculaCabecalho = capturar(texto.slice(0, 450), [
+    /matr[ií]cul[ae]\s*(?:n[.º°]*)?\s*[:\-]?\s*(\d{1,3}(?:\.\d{3})*|\d+)\s+(?:folha|ficha)/i,
+    /matr[ií]cul[ae]\s+folha\s+(?:[|Il1]\s*\(um\)|0*[1Il])\b/i,
+  ]);
+  const matricula = matriculaDosAtos ?? matriculaCabecalho;
+  const folha = capturar(texto, [
+    /folha\s*(?:n[.º°]*)?\s*[:\-]?\s*(\d{1,4})\s*(v(?:erso)?|vº)?/i,
+  ]);
+  const folhaMatch = texto.match(/folha\s*(?:n[.º°]*)?\s*[:\-]?\s*(\d{1,4})\s*(v(?:erso)?|vº)?/i);
+  const numeroFolha = Number(digitos(folhaMatch?.[1] ?? folha ?? "")) || 9999;
+  const verso = Boolean(folhaMatch?.[2]) || /\bverso\b/i.test(texto.slice(0, 250));
+  const qualidade = avaliarQualidadeOcr(textoBruto);
+  return {
+    nome,
+    matricula: matricula ? formatarNumeroMatricula(matricula) : null,
+    folha: folha ? `${formatarNumeroMatricula(folha)}${verso ? "V" : ""}` : null,
+    ordem: numeroFolha * 2 + (verso ? 1 : 0),
+    qualidade: qualidade.score,
+    alertas: qualidade.alertas,
+  };
+}
 
 function normalizarData(bruto: string): string | null {
   const numerica = bruto.match(/(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/);
@@ -332,7 +403,9 @@ function aplicarVigencia(atos: IndexAto[]): { onus: IndexAto[]; onusCancelados: 
 /** Localiza os atos (R.01, AV.02, AV.03…) e classifica os que representam ônus. */
 function extrairAtos(texto: string): { atos: IndexAto[]; onus: IndexAto[]; onusCancelados: IndexAto[] } {
   const atos: IndexAto[] = [];
-  const marcador = /\b(R|AV|Av|R\.|AV\.)\s*[-.\s]?\s*(\d{1,3}(?:\.\d{3})+|\d+)\b/g;
+  // O separador final distingue o cabeçalho do ato ("Av.27/M.1:") de
+  // referências no corpo ("características mencionadas na Av. 25").
+  const marcador = /\b(R|AV)\s*[.\-/]?\s*(\d{1,3}(?:\.\d{3})+|\d+)\s*(?:[.\-/]\s*M\s*[.\-]?\s*\d+)?\s*[:=]/gi;
   const posicoes: { idx: number; tipo: string; numero: string }[] = [];
   let m: RegExpExecArray | null;
   while ((m = marcador.exec(texto))) {
@@ -370,7 +443,7 @@ export function extrairOnusMatricula(textoBruto: string): IndexAto[] {
 
 
 export function extrairIndiceMatricula(textoBruto: string): MatriculaIndexada {
-  const texto = textoBruto.replace(/\r/g, "");
+  const texto = normalizarTextoRegistral(textoBruto);
   const compacto = texto.replace(/\s+/g, " ");
 
   const auxiliar = /registro\s+auxiliar/i.test(compacto);
@@ -379,7 +452,17 @@ export function extrairIndiceMatricula(textoBruto: string): MatriculaIndexada {
     /\bMAT\.?\s*(?:n[.º°]*)?\s*([\d.]{1,12})/i,
     /livro\s*(?:n[.º°]*)?\s*[:\-]?\s*([\d.]{1,12})/i,
   ]);
-  const livro = numeroLivro ? formatarNumeroMatricula(numeroLivro) : null;
+  const matriculasEmAtos = [...compacto.matchAll(/\b(?:R|AV)\s*[.\-/]?\s*\d+\s*[.\-/]\s*M\s*[.\-]?\s*(\d{1,3}(?:\.\d{3})*|\d+)\s*[:=]/gi)]
+    .map((m) => m[1] ?? "")
+    .filter(Boolean);
+  const matriculaPredominante = matriculasEmAtos.length
+    ? [...new Set(matriculasEmAtos)].sort((a, b) => matriculasEmAtos.filter((v) => v === b).length - matriculasEmAtos.filter((v) => v === a).length)[0]
+    : null;
+  const livro = numeroLivro
+    ? formatarNumeroMatricula(numeroLivro)
+    : matriculaPredominante
+      ? formatarNumeroMatricula(matriculaPredominante)
+      : null;
 
   const cns = capturar(compacto, [
     /\b(\d{6}\.\d\.\d{7}-\d{2})\b/,
@@ -400,9 +483,10 @@ export function extrairIndiceMatricula(textoBruto: string): MatriculaIndexada {
       ? "urbano"
       : "nao_identificado";
 
-  const areaMatch = compacto.match(
-    /[áa]rea(?:\s+total|\s+do\s+terreno|\s+superficial)?\s*(?:de|:)?\s*([\d.]+,\d+|[\d.]+)\s*(m²|m2|metros quadrados|ha|hectares?|alqueires?)/i,
-  );
+  const areaMatches = [...compacto.matchAll(
+    /[áa]rea(?:\s+total(?:\s*\/\s*registrada)?|\s+registrada|\s+do\s+terreno|\s+superficial)?\s*(?:de|:)?\s*([\d.]+,\d+|[\d.]+)\s*(m²|m2|metros quadrados|ha|hectares?|alqueires?)/gi,
+  )];
+  const areaMatch = areaMatches.at(-1) ?? null;
   const areaM2 = areaMatch ? areaParaM2(areaMatch[1] ?? "", areaMatch[2] ?? "m2") : null;
 
   const enderecoTitular =
@@ -411,14 +495,18 @@ export function extrairIndiceMatricula(textoBruto: string): MatriculaIndexada {
       /((?:rua|avenida|av\.|travessa|alameda|estrada|rodovia|pra[çc]a)[^;.]{5,140})/i,
     ]) ?? "";
 
+  const ultimaCaptura = (padrao: RegExp): string | null => {
+    const encontrados = [...compacto.matchAll(padrao)];
+    return limpar(encontrados.at(-1)?.[1]);
+  };
   const cadastros: IndexCadastros = {
     // Matrículas antigas trazem "NIRF"; o cadastro atual é o CIB.
-    cib: capturar(compacto, [/\b(?:CIB|NIRF)\b\s*(?:n[.º°]*)?\s*[:\-]?\s*([\w.\-/]{4,30})/i]),
+    cib: ultimaCaptura(/\b(?:CIB|NIRF)\b\s*(?:n[.º°]*)?\s*[:\-]?\s*([\w.\-/]{4,30})/gi),
     cim: capturar(compacto, [
       /(?:CIM|cadastro\s+imobili[áa]rio\s+municipal|cadastro municipal|inscri[çc][ãa]o (?:imobili[áa]ria|municipal)|IPTU)\s*(?:n[.º°]*)?\s*[:\-]?\s*([\w.\-/]{3,40})/i,
     ]),
-    ccir: capturar(compacto, [/\bCCIR\b\s*(?:n[.º°]*)?\s*[:\-]?\s*([\w.\-/]{4,40})/i]),
-    car: capturar(compacto, [/\bCAR\b\s*(?:n[.º°]*)?\s*[:\-]?\s*([\w.\-/]{6,60})/i]),
+    ccir: ultimaCaptura(/\bCCIR\b\s*(?:n[.º°]*)?\s*[:\-]?\s*([\w.\-/]{4,40})/gi),
+    car: ultimaCaptura(/\b(?:CAR|SICAR)\b\s*(?:sob\s*(?:o\s*)?)?(?:n[.º°]*)?\s*[:\-]?\s*([\w.\-/]{6,60})/gi),
   };
 
   const descricaoMatch = compacto.match(
@@ -428,6 +516,14 @@ export function extrairIndiceMatricula(textoBruto: string): MatriculaIndexada {
   const { atos, onus, onusCancelados } = extrairAtos(texto);
   const partes = extrairPartes(compacto);
   const ultimoAto = atos.length ? atos[atos.length - 1]! : null;
+  const evidencias = criarEvidencias(compacto, {
+    livro,
+    ultima_ficha: extrairUltimaFicha(compacto),
+    ultimo_ato: ultimoAto?.numero ?? null,
+    area_hectare: extrairHectares(compacto, areaM2),
+    cib: cadastros.cib,
+    car: cadastros.car,
+  }, ultimoAto);
 
   return {
     tipo_livro: auxiliar ? 3 : 2,
@@ -463,6 +559,7 @@ export function extrairIndiceMatricula(textoBruto: string): MatriculaIndexada {
     atos,
     onus,
     onus_cancelados: onusCancelados,
+    evidencias,
   };
 }
 
@@ -612,9 +709,11 @@ export function formatarNumeroMatricula(valor: string): string {
 const ENCERRAMENTO = /\bencerrad[ao]\b/i;
 
 function extrairUltimaFicha(texto: string): string | null {
-  return capturar(texto, [
-    /(?:[úu]ltima\s+)?ficha\s*(?:n[.º°]*)?\s*[:\-]?\s*(\d{1,4}\s*[Vv]?)\b/i,
-  ])?.replace(/\s+/g, "").toUpperCase() ?? null;
+  const fichas = [...texto.matchAll(/(?:[úu]ltima\s+)?(?:ficha|folha)\s*(?:n[.º°]*)?\s*[:\-]?\s*(\d{1,4})\s*(v(?:erso)?|vº)?\b/gi)]
+    .map((m) => ({ numero: Number(m[1]), verso: Boolean(m[2]) }))
+    .filter((f) => Number.isFinite(f.numero));
+  const ultima = fichas.sort((a, b) => a.numero - b.numero || Number(a.verso) - Number(b.verso)).at(-1);
+  return ultima ? `${ultima.numero}${ultima.verso ? "V" : ""}` : null;
 }
 
 function extrairCertificacao(texto: string): string | null {
@@ -647,11 +746,39 @@ function extrairRegistroAnterior(texto: string): string | null {
 
 function extrairMatriculasAbertas(texto: string): string[] {
   if (!ENCERRAMENTO.test(texto)) return [];
-  const janela = texto.match(/encerrad[ao][^]{0,320}/i)?.[0] ?? "";
-  const numeros = [...janela.matchAll(/\bn?[.º°]*\s*([\d]{1,3}(?:\.\d{3})+|\d{3,8})\b/g)].map((m) =>
+  const indice = texto.search(ENCERRAMENTO);
+  const janela = indice >= 0 ? texto.slice(Math.max(0, indice - 380), indice + 380) : "";
+  const numeros = [...janela.matchAll(/matr[ií]cula\s*(?:n[.º°]*)?\s*([\d]{1,3}(?:\.\d{3})+|\d{3,8})\b/gi)].map((m) =>
     formatarNumeroMatricula(m[1] ?? ""),
   );
   return [...new Set(numeros)];
+}
+
+function criarEvidencias(
+  texto: string,
+  valores: Record<string, string | number | null>,
+  ultimoAto: IndexAto | null,
+): Record<string, IndexEvidencia> {
+  const saida: Record<string, IndexEvidencia> = {};
+  for (const [campo, valor] of Object.entries(valores)) {
+    if (valor === null || valor === "") continue;
+    const literal = String(valor);
+    const candidatos = [literal, literal.replace(/\./g, ""), literal.replace(".", ",")];
+    let indice = -1;
+    for (const candidato of candidatos) {
+      indice = texto.toLowerCase().lastIndexOf(candidato.toLowerCase());
+      if (indice >= 0) break;
+    }
+    const trecho = indice >= 0
+      ? texto.slice(Math.max(0, indice - 90), Math.min(texto.length, indice + literal.length + 130)).trim()
+      : "Valor inferido pela leitura da matrícula; confirme no documento.";
+    saida[campo] = {
+      ato: campo === "ultimo_ato" && ultimoAto ? rotuloAto(ultimoAto.tipo, ultimoAto.numero) : null,
+      trecho,
+      confianca: indice >= 0 ? "alta" : "baixa",
+    };
+  }
+  return saida;
 }
 
 
