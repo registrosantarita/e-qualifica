@@ -8,16 +8,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle2, Download, FileUp, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FileUp, ScanText, Trash2 } from "lucide-react";
 import {
   atualizarRegistro,
   excluirRegistro,
+  indexarGruposMatricula,
   indexarMatricula,
   obterLote,
+  prepararArquivosIndexacao,
 } from "@/lib/checkindex.functions";
 import { exportarCsv, exportarJson, exportarXlsx, type RegistroIndexado } from "@/lib/export-index";
 import type { IndexAto } from "@/lib/matricula-index-parser";
 import { TabelaOnus } from "@/components/TabelaOnus";
+import { ConferenciaOrigem } from "@/components/checkindex/ConferenciaOrigem";
+
+type GrupoPreparado = Awaited<ReturnType<typeof prepararArquivosIndexacao>>[number];
+type RegistroComOrigem = RegistroIndexado & { source_pages?: unknown; field_evidence?: unknown };
 
 export const Route = createFileRoute("/_authenticated/indexacao/$id")({
   head: () => ({
@@ -60,11 +68,15 @@ function LoteDetalhe() {
   const queryClient = useQueryClient();
   const obter = useServerFn(obterLote);
   const indexar = useServerFn(indexarMatricula);
+  const preparar = useServerFn(prepararArquivosIndexacao);
+  const salvarGrupos = useServerFn(indexarGruposMatricula);
   const atualizar = useServerFn(atualizarRegistro);
   const excluir = useServerFn(excluirRegistro);
   const fileRef = useRef<HTMLInputElement>(null);
   const [texto, setTexto] = useState("");
   const [rotulo, setRotulo] = useState("");
+  const [gruposPreparados, setGruposPreparados] = useState<GrupoPreparado[]>([]);
+  const [refazerOcr, setRefazerOcr] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["checkindex-lote", id],
@@ -75,21 +87,26 @@ function LoteDetalhe() {
 
   const enviarArquivos = useMutation({
     mutationFn: async (files: FileList) => {
-      const notas: string[] = [];
-      for (const file of Array.from(files)) {
-        const base64 = await fileToBase64(file);
-        const ext = file.name.split(".").pop() ?? "";
-        const r = await indexar({
-          data: { batchId: id, label: file.name, fileName: file.name, extension: ext, base64 },
-        });
-        if (r.note) notas.push(`${file.name}: ${r.note}`);
-      }
-      return notas;
+      const arquivos = await Promise.all(Array.from(files).map(async (file) => ({
+        fileName: file.name,
+        extension: file.name.split(".").pop() ?? "",
+        base64: await fileToBase64(file),
+      })));
+      return preparar({ data: { arquivos, refazerOcr } });
     },
-    onSuccess: async (notas) => {
+    onSuccess: (grupos) => {
+      setGruposPreparados(grupos);
+      if (fileRef.current) fileRef.current.value = "";
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const confirmarGrupos = useMutation({
+    mutationFn: () => salvarGrupos({ data: { batchId: id, grupos: gruposPreparados } }),
+    onSuccess: async () => {
+      setGruposPreparados([]);
       await invalidar();
-      toast.success("Matrícula(s) indexada(s).");
-      notas.forEach((n) => toast.info(n));
+      toast.success("Folhas agrupadas e matrícula(s) indexada(s).");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -127,7 +144,7 @@ function LoteDetalhe() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const registros = (data?.registros ?? []) as unknown as RegistroIndexado[];
+  const registros = (data?.registros ?? []) as unknown as RegistroComOrigem[];
   const baseNome = (data?.lote.title ?? "checkindex").replace(/[^\w\-]+/g, "_").toLowerCase();
 
   return (
@@ -153,9 +170,16 @@ function LoteDetalhe() {
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="font-display text-lg text-foreground">Enviar matrículas</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            PDF, DOCX, imagem ou planilha. PDFs sem camada de texto passam por OCR (consome
-            créditos).
+            Selecione todas as folhas da matrícula de uma vez. Elas serão identificadas, ordenadas e
+            conferidas antes da gravação.
           </p>
+          <label className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
+            <Checkbox checked={refazerOcr} onCheckedChange={(valor) => setRefazerOcr(valor === true)} />
+            <span>
+              Refazer a leitura com IA
+              <span className="block text-xs">Use somente quando o texto já existente estiver ruim. Consome créditos.</span>
+            </span>
+          </label>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Input
               ref={fileRef}
@@ -172,7 +196,7 @@ function LoteDetalhe() {
               disabled={enviarArquivos.isPending}
             >
               <FileUp className="mr-2 h-4 w-4" />
-              {enviarArquivos.isPending ? "Processando…" : "Procurar…"}
+              {enviarArquivos.isPending ? "Lendo e agrupando…" : "Procurar…"}
             </Button>
           </div>
         </div>
@@ -381,6 +405,10 @@ function LoteDetalhe() {
 
                 <TabelaOnus itens={todosOnus} origem={r.label} />
 
+                <div className="mt-4">
+                  <ConferenciaOrigem paginas={r.source_pages} evidencias={r.field_evidence} />
+                </div>
+
 
                 {props.length > 0 && (
                   <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -413,6 +441,53 @@ function LoteDetalhe() {
         Os dados extraídos são um apoio à indexação e devem ser conferidos antes da importação no
         sistema do Cartório.
       </p>
+
+      <Dialog open={gruposPreparados.length > 0} onOpenChange={(aberto) => !aberto && setGruposPreparados([])}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Confirmar composição das matrículas</DialogTitle>
+            <DialogDescription>
+              Confira a matrícula e a ordem das folhas. Nada será salvo antes da confirmação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {gruposPreparados.map((grupo, grupoIndice) => (
+              <section key={`${grupo.matricula}-${grupoIndice}`} className="border border-border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-display text-base">
+                    {grupo.matricula ? `Matrícula ${grupo.matricula}` : "Matrícula não identificada"}
+                  </h3>
+                  <Badge variant="outline">{grupo.paginas.length} folha(s)</Badge>
+                </div>
+                <ol className="mt-3 space-y-2">
+                  {grupo.paginas.map((pagina, paginaIndice) => (
+                    <li key={`${pagina.nome}-${paginaIndice}`} className="flex items-start justify-between gap-3 border-t border-border/60 pt-2 text-sm">
+                      <div>
+                        <span className="font-medium">{paginaIndice + 1}. {pagina.nome}</span>
+                        <span className="ml-2 text-muted-foreground">Folha {pagina.folha ?? "não identificada"}</span>
+                        {pagina.alertas.map((alerta) => (
+                          <p key={alerta} className="mt-1 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+                            <AlertTriangle className="h-3 w-3" /> {alerta}
+                          </p>
+                        ))}
+                      </div>
+                      <Badge variant={pagina.qualidade >= 75 ? "secondary" : "destructive"}>
+                        <ScanText className="mr-1 h-3 w-3" /> {pagina.qualidade}%
+                      </Badge>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGruposPreparados([])}>Cancelar</Button>
+            <Button onClick={() => confirmarGrupos.mutate()} disabled={confirmarGrupos.isPending}>
+              {confirmarGrupos.isPending ? "Salvando…" : "Confirmar e indexar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

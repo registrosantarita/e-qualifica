@@ -2,7 +2,76 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
-import { extrairIndiceMatricula } from "./matricula-index-parser";
+import {
+  avaliarQualidadeOcr,
+  extrairIndiceMatricula,
+  identificarPaginaMatricula,
+  type IndexPagina,
+} from "./matricula-index-parser";
+
+const arquivoEntrada = z.object({
+  fileName: z.string().max(255),
+  extension: z.string().max(12),
+  base64: z.string(),
+});
+
+type PaginaPreparada = IndexPagina & {
+  extension: string;
+  texto: string;
+  note?: string;
+};
+
+function agruparPaginas(paginas: PaginaPreparada[]) {
+  const matriculasConhecidas = paginas.map((p) => p.matricula).filter((m): m is string => Boolean(m));
+  const unica = [...new Set(matriculasConhecidas)].length === 1 ? matriculasConhecidas[0] : null;
+  const grupos = new Map<string, PaginaPreparada[]>();
+  for (const pagina of paginas) {
+    const chave = pagina.matricula ?? unica ?? `sem-identificacao:${pagina.nome}`;
+    grupos.set(chave, [...(grupos.get(chave) ?? []), pagina]);
+  }
+  return [...grupos.entries()].map(([matricula, itens]) => {
+    const ordenadas = itens.sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome));
+    const semFolha = ordenadas.filter((p) => !p.folha).length;
+    const podeInferirSequencia = ordenadas.length > 1 && semFolha > ordenadas.length / 2;
+    const paginas = podeInferirSequencia
+      ? ordenadas.map((pagina, indice) => ({
+          ...pagina,
+          folha: pagina.folha ?? `${Math.floor(indice / 2) + 1}${indice % 2 === 1 ? "V" : ""}`,
+          ordem: pagina.ordem === 19998 ? indice + 1 : pagina.ordem,
+          alertas: pagina.folha
+            ? pagina.alertas
+            : [...pagina.alertas, "Folha inferida pela ordem dos arquivos; confirme antes de salvar"],
+        }))
+      : ordenadas;
+    return {
+      matricula: matricula.startsWith("sem-identificacao:") ? null : matricula,
+      paginas,
+    };
+  });
+}
+
+async function registrarUsoOcr(
+  context: { userId: string; supabase: { from: (table: string) => any } },
+  usage: import("./ocr.server").OcrUsage | undefined,
+  fileName: string,
+  extension: string,
+) {
+  if (!usage) return;
+  const { creditosDeTokens } = await import("./credit-estimator");
+  await context.supabase.from("ai_usage_events").insert({
+    user_id: context.userId,
+    operation: "checkindex_ocr",
+    model: usage.model,
+    ocr_used: true,
+    file_name: fileName,
+    file_extension: extension.replace(".", "").toLowerCase() || null,
+    prompt_tokens: usage.promptTokens,
+    completion_tokens: usage.completionTokens,
+    total_tokens: usage.totalTokens,
+    credits_estimated: creditosDeTokens(usage.totalTokens),
+    note: "OCR de matrícula digitalizada (CheckIndex).",
+  });
+}
 
 export const listarLotes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -60,7 +129,7 @@ export const obterLote = createServerFn({ method: "POST" })
       context.supabase
         .from("index_records")
         .select(
-          "id, label, file_name, file_extension, source_type, tipo_livro, livro, matricula_numero, cns, data_abertura, ultima_ficha, ultimo_ato, registro_anterior, encerrada, matriculas_abertas, natureza, cep, tipo_logradouro, logradouro, numero_logradouro, bairro, lote, quadra, condominio, unidade, andar, bloco, tipo_rural, denominacao_rural, cim, certificacao, area_m2, area_hectare, perimetro_m, area_construida_m2, descricao, endereco, prenotacao, tipo_ato, ato, data_ato, selo, adquirente, conjuge_adq, transmitente, conjuge_transm, usufrutuario, conjuge_usu, outorgante, conjuge_outorgante, outorgado, conjuge_outorgado, credor, devedor, serviente, dominante, estado_civil, data_casamento, lei_casamento, reg_bens, pacto, email, telefone, identificacao, inscricao_estadual, situacao_titulares, cadastros, proprietarios, atos, onus, extraction_source, review_status, created_at",
+          "id, label, file_name, file_extension, source_type, tipo_livro, livro, matricula_numero, cns, data_abertura, ultima_ficha, ultimo_ato, registro_anterior, encerrada, matriculas_abertas, natureza, cep, tipo_logradouro, logradouro, numero_logradouro, bairro, lote, quadra, condominio, unidade, andar, bloco, tipo_rural, denominacao_rural, cim, certificacao, area_m2, area_hectare, perimetro_m, area_construida_m2, descricao, endereco, prenotacao, tipo_ato, ato, data_ato, selo, adquirente, conjuge_adq, transmitente, conjuge_transm, usufrutuario, conjuge_usu, outorgante, conjuge_outorgante, outorgado, conjuge_outorgado, credor, devedor, serviente, dominante, estado_civil, data_casamento, lei_casamento, reg_bens, pacto, email, telefone, identificacao, inscricao_estadual, situacao_titulares, cadastros, proprietarios, atos, onus, source_pages, field_evidence, corrections, ocr_quality, extraction_source, review_status, created_at",
         )
         .eq("batch_id", data.id)
         .order("created_at", { ascending: true }),
@@ -69,6 +138,103 @@ export const obterLote = createServerFn({ method: "POST" })
     if (!lote.data) throw new Error("Lote não encontrado.");
     if (registros.error) throw new Error(registros.error.message);
     return { lote: lote.data, registros: registros.data ?? [] };
+  });
+
+export const prepararArquivosIndexacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ arquivos: z.array(arquivoEntrada).min(1).max(100), refazerOcr: z.boolean().default(false) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const paginas: PaginaPreparada[] = [];
+    for (const arquivo of data.arquivos) {
+      const bin = atob(arquivo.base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+      let resultado: Awaited<ReturnType<typeof import("./extraction.server")["extractTextFromFile"]>>;
+      if (data.refazerOcr && /^(pdf|png|jpe?g|webp|tiff?)$/i.test(arquivo.extension)) {
+        const { ocrDocument } = await import("./ocr.server");
+        resultado = await ocrDocument(bytes.buffer.slice(0), arquivo.extension, arquivo.fileName);
+      } else {
+        const { extractTextFromFile } = await import("./extraction.server");
+        resultado = await extractTextFromFile(bytes.buffer.slice(0), arquivo.extension);
+      }
+      await registrarUsoOcr(context, resultado.usage, arquivo.fileName, arquivo.extension);
+      if (!resultado.text.trim()) throw new Error(resultado.note ?? `Nenhum texto foi encontrado em ${arquivo.fileName}.`);
+      paginas.push({
+        ...identificarPaginaMatricula(resultado.text, arquivo.fileName),
+        extension: arquivo.extension,
+        texto: resultado.text,
+        ...(resultado.note ? { note: resultado.note } : {}),
+      });
+    }
+    return agruparPaginas(paginas);
+  });
+
+export const indexarGruposMatricula = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      batchId: z.string().uuid(),
+      grupos: z.array(z.object({
+        matricula: z.string().nullable(),
+        paginas: z.array(z.object({
+          nome: z.string().max(255),
+          extension: z.string().max(12),
+          texto: z.string().max(500000),
+          folha: z.string().nullable(),
+          ordem: z.number(),
+          qualidade: z.number(),
+          alertas: z.array(z.string()),
+        })).min(1),
+      })).min(1),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const ids: string[] = [];
+    for (const grupo of data.grupos) {
+      const paginas = [...grupo.paginas].sort((a, b) => a.ordem - b.ordem);
+      const texto = paginas.map((p) => `\n=== ${p.nome} | FOLHA ${p.folha ?? "NÃO IDENTIFICADA"} ===\n${p.texto}`).join("\n");
+      const dados = extrairIndiceMatricula(texto);
+      const qualidade = avaliarQualidadeOcr(texto);
+      const ultimaFicha = dados.ultima_ficha ?? paginas.at(-1)?.folha ?? null;
+      const { data: row, error } = await context.supabase.from("index_records").insert({
+        batch_id: data.batchId,
+        label: grupo.matricula ? `Matrícula ${grupo.matricula}` : paginas.map((p) => p.nome).join(" + "),
+        file_name: paginas.map((p) => p.nome).join("; ").slice(0, 255),
+        file_extension: paginas.length === 1 ? paginas[0]?.extension ?? null : "pdf",
+        source_type: "upload_grouped",
+        tipo_livro: dados.tipo_livro, livro: dados.livro, matricula_numero: dados.matricula_numero,
+        cns: dados.cns, data_abertura: dados.data_abertura, ultima_ficha: ultimaFicha,
+        ultimo_ato: dados.ultimo_ato, registro_anterior: dados.registro_anterior,
+        encerrada: dados.encerrada, matriculas_abertas: dados.matriculas_abertas, natureza: dados.natureza,
+        cep: dados.cep, tipo_logradouro: dados.tipo_logradouro, logradouro: dados.logradouro,
+        numero_logradouro: dados.numero_logradouro, bairro: dados.bairro, lote: dados.lote, quadra: dados.quadra,
+        condominio: dados.condominio, unidade: dados.unidade, andar: dados.andar, bloco: dados.bloco,
+        tipo_rural: dados.tipo_rural, denominacao_rural: dados.denominacao_rural, cim: dados.cadastros.cim,
+        certificacao: dados.certificacao, area_m2: dados.area_m2, area_hectare: dados.area_hectare,
+        perimetro_m: dados.perimetro_m, area_construida_m2: dados.area_construida_m2, descricao: dados.descricao,
+        endereco: dados.endereco, prenotacao: dados.prenotacao, tipo_ato: dados.tipo_ato, ato: dados.ato,
+        data_ato: dados.data_ato, selo: dados.selo, adquirente: dados.adquirente, conjuge_adq: dados.conjuge_adq,
+        transmitente: dados.transmitente, conjuge_transm: dados.conjuge_transm, usufrutuario: dados.usufrutuario,
+        conjuge_usu: dados.conjuge_usu, outorgante: dados.outorgante, conjuge_outorgante: dados.conjuge_outorgante,
+        outorgado: dados.outorgado, conjuge_outorgado: dados.conjuge_outorgado, credor: dados.credor,
+        devedor: dados.devedor, serviente: dados.serviente, dominante: dados.dominante,
+        estado_civil: dados.estado_civil, data_casamento: dados.data_casamento, lei_casamento: dados.lei_casamento,
+        reg_bens: dados.reg_bens, pacto: dados.pacto, email: dados.email, telefone: dados.telefone,
+        identificacao: dados.identificacao, inscricao_estadual: dados.inscricao_estadual,
+        situacao_titulares: dados.situacao_titulares, cadastros: JSON.parse(JSON.stringify(dados.cadastros)),
+        proprietarios: JSON.parse(JSON.stringify(dados.proprietarios)), atos: JSON.parse(JSON.stringify(dados.atos)),
+        onus: JSON.parse(JSON.stringify([...dados.onus, ...dados.onus_cancelados])),
+        extracted: JSON.parse(JSON.stringify(dados)), source_pages: JSON.parse(JSON.stringify(paginas.map(({ texto: _texto, ...p }) => p))),
+        field_evidence: JSON.parse(JSON.stringify(dados.evidencias)), ocr_quality: JSON.parse(JSON.stringify(qualidade)),
+        corrections: {}, extraction_source: "deterministico_agrupado", raw_text: texto.slice(0, 400000),
+        review_status: "pendente", created_by: context.userId,
+      }).select("id").single();
+      if (error || !row) throw new Error(error?.message ?? "Falha ao indexar a matrícula agrupada.");
+      ids.push(row.id);
+    }
+    return { ids };
   });
 
 export const indexarMatricula = createServerFn({ method: "POST" })
@@ -303,9 +469,24 @@ export const atualizarRegistro = createServerFn({ method: "POST" })
     const campos = Object.fromEntries(
       Object.entries(data.campos).filter(([, v]) => v !== undefined),
     ) as unknown as Database["public"]["Tables"]["index_records"]["Update"];
+    const { data: anterior, error: erroAnterior } = await context.supabase
+      .from("index_records")
+      .select("corrections")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (erroAnterior) throw new Error(erroAnterior.message);
+    const correcoesAnteriores = anterior?.corrections && typeof anterior.corrections === "object" && !Array.isArray(anterior.corrections)
+      ? anterior.corrections as Record<string, unknown>
+      : {};
+    const agora = new Date().toISOString();
+    const corrections = { ...correcoesAnteriores };
+    for (const [campo, valor] of Object.entries(campos)) {
+      if (campo === "review_status") continue;
+      corrections[campo] = { valor_confirmado: valor, responsavel: context.userId, data_correcao: agora };
+    }
     const { error } = await context.supabase
       .from("index_records")
-      .update(campos)
+      .update({ ...campos, corrections: JSON.parse(JSON.stringify(corrections)) })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true as const };
