@@ -55,6 +55,10 @@ export const processDocument = createServerFn({ method: "POST" })
       usage = result.usage;
     }
 
+    if (doc.source_document_id && !doc.original_text) {
+      throw new Error("Trecho sem texto extraído. Reprocesse o documento original.");
+    }
+
     await registrarConsumo(supabase, {
       analysisId: doc.analysis_id,
       documentId: doc.id,
@@ -105,6 +109,7 @@ export const processDocument = createServerFn({ method: "POST" })
 
     // Um arquivo-fonte pode conter vários perímetros; cada descrição recebe um
     // documento próprio para classificação e comparação independentes.
+    let destinos: string[] | undefined;
     if (parcelas.length > 1 && !doc.source_document_id) {
       const trechos = ehGeometria ? [] : descricoesEmProsa(text);
       const { data: existentes, error: existingError } = await supabase
@@ -151,7 +156,7 @@ export const processDocument = createServerFn({ method: "POST" })
         if (deleteError) throw new Error(deleteError.message);
       }
       // A persistência das parcelas usa o ID de cada filho abaixo.
-      var destinos = filhos.map((f) => f.id);
+      destinos = filhos.map((f) => f.id);
     }
 
     if (!destinos) {
