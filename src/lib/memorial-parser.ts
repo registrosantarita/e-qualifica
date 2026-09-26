@@ -764,6 +764,56 @@ const PROSE_START_RE = new RegExp(
 );
 const PROSE_CONFRONT_RE = /confront(?:ando|a|ante|antes|ação)?\s*(?:-se)?\s*(?:com|:)\s*([^:;]{2,140}?)(?:,\s*com\s+os\s+seguintes|;|\.|:)/gi;
 
+/** Caminhamento com destino depois da confrontação: "... até atingir o ponto 2". */
+const ARRIVAL_SEG_RE = new RegExp(
+  String.raw`azimute\s*(?:de|:)?\s*(\d{1,3}\s*[°º]\s*\d{1,2}\s*[${APOS}]\s*\d{1,2}(?:[.,]\d+)?\s*(?:[${SEC}]|[${APOS}]{1,2})?)\s*(?:,|e)?\s*dist[âa]ncia\s*(?:de|:)?\s*(${OCR_DIGIT_TOKEN})\s*(?:m|metros)\b([^;]{0,240}?)\bat[ée]\s+atingir\s+(?:o\s+)?(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{0,20})\b`,
+  "gi",
+);
+
+function parseArrivalSegments(flat: string): StructuredParse | null {
+  const matches = [...flat.matchAll(ARRIVAL_SEG_RE)];
+  if (!matches.length) return null;
+  const first = matches[0]!;
+  const initial = /(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{0,20})\b/gi;
+  const initialMention = [...flat.slice(0, first.index).matchAll(initial)].at(-1);
+  if (!initialMention) return null;
+
+  const coords = new Map<string, VertexCoord>();
+  const register = (name: string, context: string) => {
+    const found = extractCoords(context);
+    const key = name.toUpperCase();
+    coords.set(key, {
+      name: key, lat: found.lat, lon: found.lon,
+      north: found.north, east: found.east, alt: null,
+    });
+  };
+  register(initialMention[1]!, flat.slice((initialMention.index ?? 0) + initialMention[0].length, first.index));
+
+  const segments: ParsedSegment[] = [];
+  const fixes: string[] = [];
+  let from = initialMention[1]!;
+  matches.forEach((match, index) => {
+    const to = match[4]!;
+    const next = matches[index + 1];
+    // Coordinates of the arrival vertex follow its name, before the next leg.
+    const after = flat.slice((match.index ?? 0) + match[0].length, next?.index ?? flat.length).split(";")[0]!;
+    register(to, after);
+    const distance = parseNumberOcr(match[2]!);
+    if (distance.corrigido) fixes.push(distance.corrigido);
+    const confront = /confront(?:ando|a|ante|antes|ação)?\s*(?:-se)?\s*(?:com|:)\s*([\s\S]*?)(?:,?\s*)$/i.exec(match[3]!);
+    const azimuth = parseAzimuthText(match[1]!);
+    segments.push({
+      seq: segments.length + 1, from_vertex: from, to_vertex: to,
+      bearing_text: match[1]!.trim(), azimuth_deg: azimuth === null ? null : normalizeAzimuth(azimuth),
+      distance_m: distance.value, altitude_from_m: null, altitude_to_m: null,
+      confrontante: confront ? cleanConfrontante(confront[1]!) : null,
+      raw_text: match[0]!.slice(0, 600),
+    });
+    from = to;
+  });
+  return { segments, coords, ...(fixes.length ? { warnings: [avisoOcr(fixes)] } : {}) };
+}
+
 function parseProseSegments(flat: string): StructuredParse | null {
   const start = PROSE_START_RE.exec(flat);
   if (!start) return null;
@@ -862,7 +912,7 @@ export function parseMemorial(text: string): ParsedParcel {
 
   const tableParse = parseMeasureTable(normalizado);
   const structured =
-    parseSigefTable(normalizado) ?? parseProseSegments(flat) ?? tableParse;
+    parseSigefTable(normalizado) ?? parseArrivalSegments(flat) ?? parseProseSegments(flat) ?? tableParse;
 
   if (structured?.warnings?.length) warnings.push(...structured.warnings);
 
