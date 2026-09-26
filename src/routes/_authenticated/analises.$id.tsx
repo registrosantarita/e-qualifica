@@ -84,6 +84,7 @@ export const Route = createFileRoute("/_authenticated/analises/$id")({
 
 type DocRow = {
   id: string;
+  source_document_id: string | null;
   file_name: string | null;
   file_extension: string | null;
   source_type: string;
@@ -175,7 +176,7 @@ function AnaliseDetalhe() {
       const { data, error } = await supabase
         .from("documents")
         .select(
-          "id, file_name, file_extension, source_type, document_category, status, error_message, created_at",
+          "id, source_document_id, file_name, file_extension, source_type, document_category, status, error_message, created_at",
         )
         .eq("analysis_id", id)
         .order("created_at");
@@ -297,8 +298,8 @@ function AnaliseDetalhe() {
         file_extension: ext,
         mime_type: file.type || null,
         file_size_bytes: file.size,
-        storage_path: path,
-        document_category: categoria as never,
+          storage_path: path,
+          document_category: categoria as never,
         ...(textoCad ? { original_text: textoCad } : {}),
         created_by: uid,
       })
@@ -339,7 +340,7 @@ function AnaliseDetalhe() {
       setArquivosPendentes([]);
       setProgressoLote(null);
       refreshDocs();
-      if (ok > 0) toast.success(`${ok} documento(s) ingerido(s).`);
+      if (ok > 0) toast.success(`${ok} arquivo(s) processado(s). As descrições separadas estão na lista abaixo.`);
       falhas.forEach((f) => toast.warning(f));
     },
     onError: (e: Error) => {
@@ -804,7 +805,7 @@ function AnaliseDetalhe() {
                 value={openDocs}
                 onValueChange={setOpenDocs}
               >
-                {documents.data!.map((d) => {
+                {documents.data!.filter((d) => !documents.data!.some((filho) => filho.source_document_id === d.id)).map((d) => {
                   const parcel = (parcels.data ?? []).find(
                     (p) => p.document_id === d.id,
                   );

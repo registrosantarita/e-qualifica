@@ -1,4 +1,4 @@
-import { parseMemorial, type ParsedParcel } from "./memorial-parser";
+import { parseMemorial, parseNumber, type ParsedParcel } from "./memorial-parser";
 import { parseGeometryPolygons, parseGeometryText } from "./geo-parser";
 import { pareceLoteamento, parseLoteamento } from "./loteamento-parser";
 
@@ -51,6 +51,52 @@ function assinatura(p: ParsedParcel): string {
     .join(";");
 }
 
+/** Descrições dentro de contratos não começam necessariamente em uma linha de título.
+ * O início da poligonal e o fecho delimitam o texto útil; cláusulas vizinhas não
+ * devem emprestar área, matrícula ou segmentos a outro imóvel. */
+export function descricoesEmProsa(texto: string): { parcela: ParsedParcel; texto: string }[] {
+  const inicios = [...texto.matchAll(/\ba\s+poligonal\s+inicia\s+no\s+ponto\s+[\w.-]+\s*,/gi)];
+  if (!inicios.length) return [];
+  const candidatos = new Map<string, { parcela: ParsedParcel; texto: string; ordem: number }>();
+  inicios.forEach((inicio, ordem) => {
+    const pos = inicio.index;
+    const proximo = inicios[ordem + 1]?.index ?? texto.length;
+    const resto = texto.slice(pos, Math.min(proximo, pos + 40000));
+    const fecho = /onde\s+teve\s+in[ií]cio\s+a\s+descri[çc][ãa]o\s+deste\s+per[ií]metro/i.exec(resto);
+    const corpo = fecho ? resto.slice(0, fecho.index + fecho[0].length) : resto;
+    const contexto = texto.slice(Math.max(0, pos - 320), pos);
+    const area = [...contexto.matchAll(/[áa]rea(?:\s+de\s+servid[ãa]o)?\s*:\s*[\d.,]+\s*(?:ha|m[²2])/gi)].at(-1)?.[0] ?? "";
+    const referencia = [...contexto.matchAll(/\bRPR[_-]POF[_-]0?97[_-][A-Z](?:[_-][A-Z])?/gi)].at(-1)?.[0] ?? "";
+    const faixa = /faixa\s+adicional/i.test(contexto.slice(-170)) ? "Faixa adicional" : "Faixa principal";
+    const trecho = `${area.toLowerCase()}\n${corpo}`;
+    const parcela = parseMemorial(trecho);
+    const areaValor = /[\d.,]+/.exec(area)?.[0];
+    if (areaValor && parcela.area_m2 === null) {
+      const numero = parseNumber(areaValor);
+      if (numero !== null) parcela.area_m2 = /ha\b/i.test(area) ? numero * 10000 : numero;
+    }
+    if (parcela.segments.length < 3) return;
+    const coordenadaInicial = /latitude\s*:\s*([^\s,]+(?:,[\d]+)?)[\s\S]{0,65}?longitude\s*:\s*([^\s,]+(?:,[\d]+)?)/i.exec(corpo.slice(0, 250));
+    const chave = coordenadaInicial
+      ? `${coordenadaInicial[1]?.replace(/\s/g, "").replace(/^-/, "")}|${coordenadaInicial[2]?.replace(/\s/g, "").replace(/^-/, "")}`
+      : assinatura(parcela);
+    const anterior = candidatos.get(chave);
+    if (!anterior || (parcela.area_m2 !== null && anterior.parcela.area_m2 === null) ||
+      (parcela.area_m2 !== null && parcela.segments.length > anterior.parcela.segments.length)) {
+      candidatos.set(chave, {
+        ordem: anterior?.ordem ?? ordem,
+        texto: trecho,
+        parcela: {
+          ...parcela,
+          label: `${faixa}${referencia ? ` — ${referencia}` : ` ${ordem + 1}`}`,
+          warnings: fecho ? parcela.warnings : ["Fechamento da descrição não identificado; confira o último trecho.", ...parcela.warnings],
+        },
+      });
+    }
+  });
+  return [...candidatos.values()].sort((a, b) => a.ordem - b.ordem).map(({ parcela, texto }) => ({ parcela, texto }));
+}
+
 /**
  * Extrai TODAS as parcelas (polígonos) descritas em um documento. Quando o
  * documento traz um único imóvel, devolve uma só parcela — comportamento
@@ -74,6 +120,9 @@ export function parseParcelas(text: string, ehGeometria: boolean): ParsedParcel[
   }
 
   if (semDescricaoPerimetrica(text)) return [];
+
+  const emProsa = descricoesEmProsa(text);
+  if (emProsa.length) return emProsa.map((item) => item.parcela);
 
   if (pareceLoteamento(text)) {
     const lotes = parseLoteamento(text);

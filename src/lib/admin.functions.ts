@@ -165,6 +165,7 @@ export const excluirDocumento = createServerFn({ method: "POST" })
       .select("storage_path")
       .eq("id", data.documentId)
       .maybeSingle();
+    // Filhos guardam somente texto: excluir um deles não remove o PDF original.
     if (doc?.storage_path)
       await supabaseAdmin.storage.from("documentos").remove([doc.storage_path]);
 
