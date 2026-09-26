@@ -11,3 +11,4 @@
 
 - O acervo `norms`/`norm_chunks` é legível por qualquer identidade autenticada, mas não por visitantes; é uma biblioteca compartilhada entre usuários conectados.
 - A extração de PDFs preserva limites de página para retirar apenas cabeçalhos repetidos antes da análise; cabeçalhos intercalados quebram frases e trechos perimetrais.
+- No GeoConfronto, um arquivo original pode gerar documentos-filhos independentes por descrição perimétrica, ligados à fonte; apenas a fonte guarda o PDF para evitar uploads e OCR duplicados.

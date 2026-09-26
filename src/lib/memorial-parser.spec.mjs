@@ -58,3 +58,20 @@ test("os dois PDFs enviados produzem o mesmo caminhamento completo", async () =>
   }
   assert.deepEqual(parsed[0].segments.map((s) => [s.from_vertex, s.to_vertex, s.distance_m, s.azimuth_deg]), parsed[1].segments.map((s) => [s.from_vertex, s.to_vertex, s.distance_m, s.azimuth_deg]));
 });
+
+test("escritura e instrumento particular separam dez faixas sem duplicar os anexos", async () => {
+  for (const [name, expected] of [
+    ["02._Escritura_Pública.PDF", [26286, 3792, 96, 73179, 109, 76, 2929, 2111, 3998, 2485]],
+    ["03._Instrumento_Particular.PDF", [26286, 3792, 96, 73179, 109, 76, 2929, 2111, 3998, 2485]],
+  ]) {
+    const file = `/mnt/user-uploads/${name}`;
+    let bytes;
+    try { bytes = readFileSync(file); } catch { continue; }
+    const text = await extractPdfText(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    const parcels = parseParcelas(text, false);
+    assert.equal(parcels.length, 10, name);
+    assert.deepEqual(parcels.map((p) => Math.round(p.area_m2)), expected, name);
+    assert.ok(parcels.every((p) => p.segments.length >= 3), name);
+    assert.ok(parcels.every((p) => p.label.includes("RPR_POF")), name);
+  }
+});

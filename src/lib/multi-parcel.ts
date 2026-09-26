@@ -81,7 +81,8 @@ export function descricoesEmProsa(texto: string): { parcela: ParsedParcel; texto
       ? `${coordenadaInicial[1]?.replace(/\s/g, "").replace(/^-/, "")}|${coordenadaInicial[2]?.replace(/\s/g, "").replace(/^-/, "")}`
       : assinatura(parcela);
     const anterior = candidatos.get(chave);
-    if (!anterior || parcela.segments.length > anterior.parcela.segments.length) {
+    if (!anterior || (parcela.area_m2 !== null && anterior.parcela.area_m2 === null) ||
+      (parcela.area_m2 !== null && parcela.segments.length > anterior.parcela.segments.length)) {
       candidatos.set(chave, {
         ordem: anterior?.ordem ?? ordem,
         texto: trecho,
