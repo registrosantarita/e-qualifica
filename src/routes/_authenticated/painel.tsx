@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { LogOut, Plus, Trash2 } from "lucide-react";
+import { LogOut, Pencil, Plus, Trash2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { souAdmin, excluirAnalise } from "@/lib/admin.functions";
 
@@ -60,6 +60,8 @@ function Painel() {
   const [objective, setObjective] = useState("");
   const [tags, setTags] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
+  const [editedTitle, setEditedTitle] = useState("");
 
   const souAdminFn = useServerFn(souAdmin);
   const admin = useQuery({
@@ -176,6 +178,27 @@ function Painel() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const rename = useMutation({
+    mutationFn: async ({ id, title }: { id: string; title: string }) => {
+      const parsed = novaAnalise.shape.title.safeParse(title);
+      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Nome inválido.");
+      const { data, error } = await supabase
+        .from("analyses")
+        .update({ title: parsed.data })
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Não foi possível renomear esta análise.");
+    },
+    onSuccess: () => {
+      setEditing(null);
+      queryClient.invalidateQueries({ queryKey: ["analyses"] });
+      toast.success("Análise renomeada.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -246,6 +269,41 @@ function Painel() {
                 {create.isPending ? "Criando..." : "Criar análise"}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={editing !== null} onOpenChange={(open) => { if (!open && !rename.isPending) setEditing(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-display">Renomear análise</DialogTitle>
+              <DialogDescription>Altere o nome exibido no painel.</DialogDescription>
+            </DialogHeader>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editing && !rename.isPending) rename.mutate({ id: editing.id, title: editedTitle });
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="novo-nome-analise">Nome da análise</Label>
+                <Input
+                  id="novo-nome-analise"
+                  autoFocus
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  minLength={3}
+                  maxLength={255}
+                  required
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" disabled={rename.isPending} onClick={() => setEditing(null)}>Cancelar</Button>
+                <Button type="submit" disabled={rename.isPending || editedTitle.trim().length < 3 || editedTitle.trim() === editing?.title}>
+                  {rename.isPending ? "Salvando..." : "Salvar nome"}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
 
@@ -344,6 +402,16 @@ function Painel() {
                 >
                   {STATUS_ANALISE[a.status]}
                 </Badge>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-[11px] text-muted-foreground"
+                  onClick={() => { setEditing({ id: a.id, title: a.title }); setEditedTitle(a.title); }}
+                >
+                  <Pencil className="mr-1 h-3.5 w-3.5" />
+                  Renomear
+                </Button>
                 {admin.data?.admin && (
                   <Button
                     type="button"
