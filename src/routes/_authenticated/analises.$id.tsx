@@ -32,6 +32,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { exportarMatriculaXlsx } from "@/lib/export-matricula";
 import type { VertexCoordRow } from "@/lib/export-registral";
+import type { ParcelExport } from "@/lib/export-registral";
+import { baixarGeometria, montarDwg, montarKml, montarKmz } from "@/lib/export-geometria";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,6 +75,8 @@ export const Route = createFileRoute("/_authenticated/analises/$id")({
           "Documentos, extrações técnicas, comparações e trilha de auditoria da análise registral.",
       },
       { property: "og:title", content: "Análise — GeoConfronto · e-Qualifica" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Detalhe do caso de conferência registral e geométrica.",
@@ -809,6 +813,35 @@ function AnaliseDetalhe() {
                   const parcel = (parcels.data ?? []).find(
                     (p) => p.document_id === d.id,
                   );
+                  const dadosExportacao = (): ParcelExport | null => parcel ? {
+                    label: parcel.label,
+                    area_m2: parcel.area_m2,
+                    declared_perimeter_m: parcel.declared_perimeter_m,
+                    computed_perimeter_m: parcel.computed_perimeter_m,
+                    vertex_count: parcel.vertex_count,
+                    raw_extraction: parcel.raw_extraction,
+                    segments: parcel.segments ?? [],
+                  } : null;
+                  const baseExportacao = (d.file_name ?? "descricao").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 80);
+                  const exportarGeometria = async (formato: "kml" | "kmz" | "dwg") => {
+                    const dados = dadosExportacao();
+                    if (!dados) return;
+                    try {
+                      let file: string | Uint8Array;
+                      let reference = "";
+                      if (formato === "kml") file = montarKml(dados);
+                      else if (formato === "kmz") file = montarKmz(dados);
+                      else {
+                        const result = await montarDwg(dados);
+                        file = result.bytes;
+                        reference = result.reference;
+                      }
+                      baixarGeometria(file, `perimetro-${baseExportacao}-${d.id.slice(0, 8)}.${formato}`, formato === "kml" ? "application/vnd.google-earth.kml+xml" : formato === "kmz" ? "application/vnd.google-earth.kmz" : "application/acad");
+                      toast.success(`${formato.toUpperCase()} exportado.${reference ? ` ${reference}.` : ""}`);
+                    } catch (error) {
+                      toast.error(error instanceof Error ? error.message : "Não foi possível exportar a geometria.");
+                    }
+                  };
                   const gerarMatricula = async () => {
                     if (!parcel) return;
                     const base = (d.file_name ?? "descricao").replace(
@@ -1119,9 +1152,16 @@ function AnaliseDetalhe() {
                           )}
 
                           {parcel && (parcel.segments ?? []).length > 0 && (
-                            <Button size="sm" onClick={gerarMatricula}>
-                              Gerar descrição para Matrícula
-                            </Button>
+                            <>
+                              <Button size="sm" onClick={gerarMatricula}>
+                                Gerar descrição para Matrícula
+                              </Button>
+                              {(["kml", "kmz", "dwg"] as const).map((formato) => (
+                                <Button key={formato} variant="outline" size="sm" onClick={() => void exportarGeometria(formato)}>
+                                  Exportar em {formato.toUpperCase()}
+                                </Button>
+                              ))}
+                            </>
                           )}
 
                         </div>
