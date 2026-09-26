@@ -8,6 +8,13 @@
       "when": 1789338648255,
       "tag": "0000_add_checkindex_review_provenance",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790462782150,
+      "tag": "0001_require_authenticated_identity_for_shared_norm_reads",
+      "breakpoints": true
     }
   ]
 }
