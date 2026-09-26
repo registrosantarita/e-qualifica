@@ -4,8 +4,25 @@ export async function extractPdfText(bytes: ArrayBuffer): Promise<string> {
   const { extractText, getDocumentProxy } = await import("unpdf");
   // pdf.js "detacha" (invalida) o buffer recebido; sempre trabalhar numa cópia.
   const pdf = await getDocumentProxy(new Uint8Array(bytes.slice(0)));
-  const { text } = await extractText(pdf, { mergePages: true });
-  return Array.isArray(text) ? text.join("\n") : text;
+  const { text } = await extractText(pdf, { mergePages: false });
+  return removeRepeatedPdfPageHeaders(Array.isArray(text) ? text : [text]).join("\n");
+}
+
+/** Remove cabeçalhos repetidos que, na junção de páginas, partem uma medida ou um vértice. */
+export function removeRepeatedPdfPageHeaders(pages: string[]): string[] {
+  if (pages.length < 2) return pages;
+  const lines = pages.map((page) => page.split("\n"));
+  // Apenas um prefixo idêntico em todas as páginas seguido de uma indicação de página
+  // é considerado cabeçalho. Assim não descartamos uma descrição no início de página.
+  let prefix = 0;
+  while (
+    prefix < 5 &&
+    lines.every((page) => page[prefix]?.trim() === lines[0]?.[prefix]?.trim() && Boolean(page[prefix]?.trim()))
+  ) prefix++;
+  if (prefix === 0 || !lines.every((page) => /^p[áa]gina\s+\d+\s+de\s+\d+\s*$/i.test(page[prefix]?.trim() ?? ""))) {
+    return pages;
+  }
+  return lines.map((page) => page.slice(prefix + 1).join("\n"));
 }
 
 export function decodeText(bytes: ArrayBuffer): string {

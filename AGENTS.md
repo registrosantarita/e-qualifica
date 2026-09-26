@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - O acervo `norms`/`norm_chunks` é legível por qualquer identidade autenticada, mas não por visitantes; é uma biblioteca compartilhada entre usuários conectados.
+- A extração de PDFs preserva limites de página para retirar apenas cabeçalhos repetidos antes da análise; cabeçalhos intercalados quebram frases e trechos perimetrais.
