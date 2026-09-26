@@ -249,6 +249,8 @@ export type Database = {
           language_code: string
           mime_type: string | null
           original_text: string | null
+          source_document_id: string | null
+          source_parcel_index: number | null
           source_type: Database["public"]["Enums"]["document_source_type"]
           status: Database["public"]["Enums"]["document_status"]
           storage_path: string | null
@@ -268,6 +270,8 @@ export type Database = {
           language_code?: string
           mime_type?: string | null
           original_text?: string | null
+          source_document_id?: string | null
+          source_parcel_index?: number | null
           source_type?: Database["public"]["Enums"]["document_source_type"]
           status?: Database["public"]["Enums"]["document_status"]
           storage_path?: string | null
@@ -287,6 +291,8 @@ export type Database = {
           language_code?: string
           mime_type?: string | null
           original_text?: string | null
+          source_document_id?: string | null
+          source_parcel_index?: number | null
           source_type?: Database["public"]["Enums"]["document_source_type"]
           status?: Database["public"]["Enums"]["document_status"]
           storage_path?: string | null
@@ -298,6 +304,13 @@ export type Database = {
             columns: ["analysis_id"]
             isOneToOne: false
             referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
             referencedColumns: ["id"]
           },
         ]

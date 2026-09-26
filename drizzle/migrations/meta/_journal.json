@@ -15,6 +15,13 @@
       "when": 1790462782150,
       "tag": "0001_require_authenticated_identity_for_shared_norm_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790464046905,
+      "tag": "0002_link_extracted_descriptions_to_source_document",
+      "breakpoints": true
     }
   ]
 }
