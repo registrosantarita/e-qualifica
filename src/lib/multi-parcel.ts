@@ -65,7 +65,7 @@ export function descricoesEmProsa(texto: string): { parcela: ParsedParcel; texto
     const fecho = /onde\s+teve\s+in[ií]cio\s+a\s+descri[çc][ãa]o\s+deste\s+per[ií]metro/i.exec(resto);
     const corpo = fecho ? resto.slice(0, fecho.index + fecho[0].length) : resto;
     const contexto = texto.slice(Math.max(0, pos - 320), pos);
-    const area = [...contexto.matchAll(/\b[áa]rea(?:\s+de\s+servid[ãa]o)?\s*:\s*[\d.,]+\s*(?:ha|m[²2])/gi)].at(-1)?.[0] ?? "";
+    const area = [...contexto.matchAll(/[áa]rea(?:\s+de\s+servid[ãa]o)?\s*:\s*[\d.,]+\s*(?:ha|m[²2])/gi)].at(-1)?.[0] ?? "";
     const referencia = [...contexto.matchAll(/\bRPR[_-]POF[_-]0?97[_-][A-Z](?:[_-][A-Z])?/gi)].at(-1)?.[0] ?? "";
     const faixa = /faixa\s+adicional/i.test(contexto.slice(-170)) ? "Faixa adicional" : "Faixa principal";
     const trecho = `${area.toLowerCase()}\n${corpo}`;

@@ -86,7 +86,10 @@ export const processDocument = createServerFn({ method: "POST" })
       text.trimStart().startsWith("<kml") ||
       text.includes("<coordinates>");
 
-    const parcelas = parseParcelas(text, ehGeometria);
+    const encontradas = parseParcelas(text, ehGeometria);
+    const parcelas = doc.source_document_id && doc.source_parcel_index !== null && encontradas.length > 1
+      ? encontradas.slice(doc.source_parcel_index, doc.source_parcel_index + 1)
+      : encontradas;
     if (parcelas.length === 0) {
       const msg = semDescricaoPerimetrica(text)
         ? "O arquivo não contém descrição perimétrica legível — o texto extraído é de uma planta plotada em CAD (rótulos de grade e legendas). Envie o memorial descritivo correspondente ou a geometria vetorial (KML, KMZ, GeoJSON) da planta."
@@ -109,7 +112,7 @@ export const processDocument = createServerFn({ method: "POST" })
 
     // Um arquivo-fonte pode conter vários perímetros; cada descrição recebe um
     // documento próprio para classificação e comparação independentes.
-    let destinos: string[] | undefined;
+    let destinos: string[] = [];
     if (parcelas.length > 1 && !doc.source_document_id) {
       const trechos = ehGeometria ? [] : descricoesEmProsa(text);
       const { data: existentes, error: existingError } = await supabase
@@ -159,7 +162,7 @@ export const processDocument = createServerFn({ method: "POST" })
       destinos = filhos.map((f) => f.id);
     }
 
-    if (!destinos) {
+    if (destinos.length === 0) {
       const { error: deleteError } = await supabase.from("parcels").delete().eq("document_id", doc.id);
       if (deleteError) throw new Error(deleteError.message);
     }
