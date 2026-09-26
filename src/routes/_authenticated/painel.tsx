@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LogOut, Plus, Trash2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { souAdmin, excluirAnalise } from "@/lib/admin.functions";
@@ -38,6 +39,8 @@ export const Route = createFileRoute("/_authenticated/painel")({
         property: "og:description",
         content: "Gestão de casos de conferência registral e geométrica.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Painel,
@@ -56,6 +59,7 @@ function Painel() {
   const [title, setTitle] = useState("");
   const [objective, setObjective] = useState("");
   const [tags, setTags] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const souAdminFn = useServerFn(souAdmin);
   const admin = useQuery({
@@ -68,8 +72,33 @@ function Painel() {
   const excluir = useMutation({
     mutationFn: (analysisId: string) => excluirFn({ data: { analysisId } }),
     onSuccess: () => {
+      setSelectedIds((ids) => ids.filter((id) => !excluir.variables || id !== excluir.variables));
       queryClient.invalidateQueries({ queryKey: ["analyses"] });
       toast.success("Análise excluída.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const excluirSelecionadas = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const deleted: string[] = [];
+      const failed: string[] = [];
+      // Usa a mesma operação protegida já utilizada na exclusão individual.
+      for (const analysisId of ids) {
+        try {
+          await excluirFn({ data: { analysisId } });
+          deleted.push(analysisId);
+        } catch {
+          failed.push(analysisId);
+        }
+      }
+      return { deleted, failed };
+    },
+    onSuccess: ({ deleted, failed }) => {
+      setSelectedIds(failed);
+      queryClient.invalidateQueries({ queryKey: ["analyses"] });
+      if (deleted.length) toast.success(`${deleted.length} análise(s) excluída(s).`);
+      if (failed.length) toast.error(`${failed.length} análise(s) não puderam ser excluídas. Tente novamente.`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -94,6 +123,22 @@ function Painel() {
       return data;
     },
   });
+
+  const availableIds = (analyses ?? []).map((a) => a.id);
+  const selectedAvailableIds = selectedIds.filter((id) => availableIds.includes(id));
+  const allSelected = availableIds.length > 0 && selectedAvailableIds.length === availableIds.length;
+  const deleting = excluir.isPending || excluirSelecionadas.isPending;
+
+  function toggleSelected(id: string, checked: boolean) {
+    setSelectedIds((current) => checked ? [...current.filter((item) => item !== id), id] : current.filter((item) => item !== id));
+  }
+
+  function confirmBulkDelete() {
+    if (!admin.data?.admin || selectedAvailableIds.length === 0 || deleting) return;
+    if (confirm(`Excluir definitivamente ${selectedAvailableIds.length} análise(s) selecionada(s), incluindo seus documentos e comparações?`)) {
+      excluirSelecionadas.mutate(selectedAvailableIds);
+    }
+  }
 
   const create = useMutation({
     mutationFn: async () => {
@@ -228,9 +273,43 @@ function Painel() {
         </div>
 
       ) : (
-        <ul className="mt-10 grid gap-4 md:grid-cols-2">
+        <div className="mt-10">
+        {admin.data?.admin && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox
+                aria-label="Selecionar tudo ou limpar seleção"
+                checked={allSelected}
+                disabled={deleting}
+                onCheckedChange={(checked) => setSelectedIds(checked === true ? availableIds : [])}
+              />
+              <span>{allSelected ? "Limpar seleção" : "Selecionar tudo"}</span>
+            </label>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={selectedAvailableIds.length === 0 || deleting}
+              onClick={confirmBulkDelete}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {excluirSelecionadas.isPending ? "Excluindo..." : `Excluir selecionadas (${selectedAvailableIds.length})`}
+            </Button>
+          </div>
+        )}
+        <ul className="grid gap-4 md:grid-cols-2">
           {analyses.map((a) => (
             <li key={a.id} className="panel flex transition-colors hover:border-accent">
+              {admin.data?.admin && (
+                <div className="py-6 pl-4">
+                  <Checkbox
+                    aria-label={`Selecionar análise ${a.title}`}
+                    checked={selectedAvailableIds.includes(a.id)}
+                    disabled={deleting}
+                    onCheckedChange={(checked) => toggleSelected(a.id, checked === true)}
+                  />
+                </div>
+              )}
               <Link
                 to="/analises/$id"
                 params={{ id: a.id }}
@@ -270,7 +349,7 @@ function Painel() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    disabled={excluir.isPending}
+                    disabled={deleting}
                     className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive"
                     onClick={() => {
                       if (
@@ -289,6 +368,7 @@ function Painel() {
             </li>
           ))}
         </ul>
+        </div>
 
       )}
     </main>
