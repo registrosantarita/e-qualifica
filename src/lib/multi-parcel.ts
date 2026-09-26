@@ -78,7 +78,7 @@ export function descricoesEmProsa(texto: string): { parcela: ParsedParcel; texto
     if (parcela.segments.length < 3) return;
     const coordenadaInicial = /latitude\s*:\s*([^\s,]+(?:,[\d]+)?)[\s\S]{0,65}?longitude\s*:\s*([^\s,]+(?:,[\d]+)?)/i.exec(corpo.slice(0, 250));
     const chave = coordenadaInicial
-      ? `${coordenadaInicial[1]?.replace(/\s/g, "").replace(/^-/, "")}|${coordenadaInicial[2]?.replace(/\s/g, "").replace(/^-/, "")}|${parcela.area_m2 ?? ""}`
+      ? `${coordenadaInicial[1]?.replace(/\s/g, "").replace(/^-/, "")}|${coordenadaInicial[2]?.replace(/\s/g, "").replace(/^-/, "")}`
       : assinatura(parcela);
     const anterior = candidatos.get(chave);
     if (!anterior || parcela.segments.length > anterior.parcela.segments.length) {
