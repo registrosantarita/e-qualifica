@@ -1,4 +1,5 @@
 # Tarefas
+- [x] Reduzir os quadros das análises do GeoConfronto para aproximadamente um quarto da área, preservando seleção e ações.
 - [x] Permitir renomear análises do GeoConfronto no painel.
 - [x] Adicionar seleção individual e geral de análises no GeoConfronto e exclusão em lote restrita ao administrador.
 - [x] Reconhecer o caminhamento “até atingir o ponto” no GeoConfronto e testar com o exemplo fornecido.
