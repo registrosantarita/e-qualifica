@@ -39,6 +39,8 @@ export const Route = createFileRoute("/_authenticated/painel")({
         property: "og:description",
         content: "Gestão de casos de conferência registral e geométrica.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Painel,
