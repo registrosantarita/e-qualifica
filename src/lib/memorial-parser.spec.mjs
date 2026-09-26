@@ -1,6 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseMemorial } from "./memorial-parser.ts";
+import { parseParcelas } from "./multi-parcel.ts";
+import { extractPdfText, removeRepeatedPdfPageHeaders } from "./extraction.server.ts";
+import { readFileSync } from "node:fs";
 
 const exemplo = `A poligonal inicia no ponto 1, de coordenadas Latitude:-21°34'22,47460"S e Longitude:-47°30'11,01434"W, referidas ao Sistema Geocêntrico SIRGAS 2000, situado no Km 47+234,84m da LT; deste segue com azimute de 46º06'35'' e distância de 5,36m, confrontando com terras de SYLVAMO DO BRASIL LTDA até atingir o ponto 2, de coordenadas Latitude:-21°34'22,35574"S e Longitude:-47°30'10,87782"W;`;
 
@@ -23,4 +26,35 @@ test("chegadas sucessivas não geram segmentos vazios", () => {
     ["1", "2", 5.36], ["2", "3", 8],
   ]);
   assert.equal(parcel.segments[1].confrontante, "terras de MARIA");
+});
+
+test("cabeçalhos repetidos não interrompem a distância e o vértice entre páginas", () => {
+  const header = "Empresa\nSetor técnico\nContato\n";
+  const pages = [
+    `${header}Página 4 de 15\nA poligonal inicia no ponto 1, de coordenadas Latitude:-21°33'49,08176\"S e Longitude:-47°30'55,85580\"W; deste segue com azimute de 127º35'23'' e distância de`,
+    `${header}Página 5 de 15\n126,89m, confrontando com terras de SYLVAMO até atingir o ponto 2, de coordenadas Latitude:-21°33'55,88349\"S e Longitude:-47°30'45,90035\"W; deste segue com azimute de 55º23'47'' e distância de 6,84m, confrontando com terras de JOSÉ até atingir o`,
+    `${header}Página 6 de 15\nponto 1, de coordenadas Latitude:-21°33'49,08176\"S e Longitude:-47°30'55,85580\"W;`,
+  ];
+  const text = removeRepeatedPdfPageHeaders(pages).join("\n");
+  const parcel = parseMemorial(text);
+  assert.deepEqual(parcel.segments.map((s) => [s.from_vertex, s.to_vertex, s.distance_m]), [["1", "2", 126.89], ["2", "1", 6.84]]);
+  assert.deepEqual(removeRepeatedPdfPageHeaders(["A\nPágina 1 de 2\ntexto", "B\nPágina 2 de 2\ntexto"]), ["A\nPágina 1 de 2\ntexto", "B\nPágina 2 de 2\ntexto"]);
+});
+
+test("os dois PDFs enviados produzem o mesmo caminhamento completo", async () => {
+  const names = ["Escritura", "Memorial"];
+  const files = names.map((name) => `/mnt/user-uploads/${name}.pdf`);
+  if (!files.every((file) => { try { readFileSync(file); return true; } catch { return false; } })) return;
+  const parsed = await Promise.all(files.map(async (file) => {
+    const bytes = readFileSync(file);
+    const text = await extractPdfText(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    return parseParcelas(text, false)[0];
+  }));
+  for (const parcel of parsed) {
+    assert.equal(parcel.segments.length, 17);
+    assert.equal(parcel.segments[6].to_vertex, "8");
+    assert.equal(parcel.segments[6].distance_m, 126.89);
+    assert.equal(parcel.segments.at(-1).to_vertex, "1");
+  }
+  assert.deepEqual(parsed[0].segments.map((s) => [s.from_vertex, s.to_vertex, s.distance_m, s.azimuth_deg]), parsed[1].segments.map((s) => [s.from_vertex, s.to_vertex, s.distance_m, s.azimuth_deg]));
 });
