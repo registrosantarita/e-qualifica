@@ -355,70 +355,64 @@ function Painel() {
             </Button>
           </div>
         )}
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
           {analyses.map((a) => (
-            <li key={a.id} className="panel flex transition-colors hover:border-accent">
-              {admin.data?.admin && (
-                <div className="py-6 pl-4">
+            <li key={a.id} className="panel flex min-w-0 flex-col transition-colors hover:border-accent">
+              <div className="flex items-center justify-between gap-2 px-3 pt-3">
+                <Badge variant="secondary" className={`max-w-full truncate text-[10px] ${STATUS_ANALISE_CLASS[a.status]}`}>
+                  {STATUS_ANALISE[a.status]}
+                </Badge>
+                {admin.data?.admin && (
                   <Checkbox
                     aria-label={`Selecionar análise ${a.title}`}
                     checked={selectedAvailableIds.includes(a.id)}
                     disabled={deleting}
                     onCheckedChange={(checked) => toggleSelected(a.id, checked === true)}
                   />
-                </div>
-              )}
+                )}
+              </div>
               <Link
                 to="/analises/$id"
                 params={{ id: a.id }}
-                className="block flex-1 min-w-0 p-6"
+                className="block min-w-0 flex-1 px-3 py-2"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <h2 className="text-xl leading-snug">{a.title}</h2>
-                </div>
+                <h2 className="line-clamp-2 text-sm leading-snug" title={a.title}>{a.title}</h2>
                 {a.objective && (
-                  <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
+                  <p className="mt-1 truncate text-xs text-muted-foreground" title={a.objective}>
                     {a.objective}
                   </p>
                 )}
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {(a.tags ?? []).map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-sm border border-border px-2 py-0.5 text-[11px] text-muted-foreground"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                  <span className="numeric ml-auto text-[11px] text-muted-foreground">
-                    {new Date(a.created_at).toLocaleDateString("pt-BR")}
-                  </span>
-                </div>
+                {(a.tags ?? []).length > 0 && (
+                  <p className="mt-1 truncate text-[11px] text-muted-foreground" title={a.tags.join(", ")}>
+                    {a.tags.join(" · ")}
+                  </p>
+                )}
               </Link>
-              <div className="flex flex-col items-end justify-between p-6 pl-2">
-                <Badge
-                  variant="secondary"
-                  className={`shrink-0 ${STATUS_ANALISE_CLASS[a.status]}`}
-                >
-                  {STATUS_ANALISE[a.status]}
-                </Badge>
+              <div className="flex items-center justify-between gap-1 border-t border-border px-3 py-1">
+                <span className="numeric text-[11px] text-muted-foreground">
+                  {new Date(a.created_at).toLocaleDateString("pt-BR")}
+                </span>
+                <div className="flex shrink-0 items-center">
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-[11px] text-muted-foreground"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground"
+                  aria-label={`Renomear análise ${a.title}`}
+                  title="Renomear"
                   onClick={() => { setEditing({ id: a.id, title: a.title }); setEditedTitle(a.title); }}
                 >
-                  <Pencil className="mr-1 h-3.5 w-3.5" />
-                  Renomear
+                  <Pencil className="h-3.5 w-3.5" />
                 </Button>
                 {admin.data?.admin && (
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     disabled={deleting}
-                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    aria-label={`Excluir análise ${a.title}`}
+                    title="Excluir"
                     onClick={() => {
                       if (
                         confirm(
@@ -428,10 +422,10 @@ function Painel() {
                         excluir.mutate(a.id);
                     }}
                   >
-                    <Trash2 className="mr-1 h-3.5 w-3.5" />
-                    Excluir
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 )}
+                </div>
               </div>
             </li>
           ))}
