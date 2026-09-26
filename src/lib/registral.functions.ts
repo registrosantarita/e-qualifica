@@ -4,7 +4,7 @@ import type { Database, Json } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { isGeoExtension } from "./geo-parser";
-import { parseParcelas, semDescricaoPerimetrica } from "./multi-parcel";
+import { parseParcelas, descricoesEmProsa, semDescricaoPerimetrica } from "./multi-parcel";
 import {
   DEFAULT_TOLERANCES,
   compareParcels,
@@ -103,13 +103,68 @@ export const processDocument = createServerFn({ method: "POST" })
       });
     }
 
-    await supabase.from("parcels").delete().eq("document_id", doc.id);
+    // Um arquivo-fonte pode conter vários perímetros; cada descrição recebe um
+    // documento próprio para classificação e comparação independentes.
+    if (parcelas.length > 1 && !doc.source_document_id) {
+      const trechos = ehGeometria ? [] : descricoesEmProsa(text);
+      const { data: existentes, error: existingError } = await supabase
+        .from("documents")
+        .select("id, source_parcel_index")
+        .eq("source_document_id", doc.id);
+      if (existingError) throw new Error(existingError.message);
+      for (const [index, parsed] of parcelas.entries()) {
+        const anterior = existentes?.find((d) => d.source_parcel_index === index);
+        const nome = `${(doc.file_name ?? "Documento").replace(/\.[^.]+$/, "")} — ${parsed.label ?? `Trecho ${index + 1}`}`.slice(0, 255);
+        const textoTrecho = trechos.length === parcelas.length ? trechos[index]?.texto : null;
+        if (anterior) {
+          const { error: updateError } = await supabase.from("documents")
+            .update({ original_text: textoTrecho ?? text.slice(0, 200000), status: "uploaded" })
+            .eq("id", anterior.id);
+          if (updateError) throw new Error(updateError.message);
+        } else {
+          const { error: insertError } = await supabase.from("documents").insert({
+            analysis_id: doc.analysis_id,
+            source_document_id: doc.id,
+            source_parcel_index: index,
+            source_type: doc.source_type,
+            file_name: nome,
+            file_extension: doc.file_extension,
+            original_text: textoTrecho ?? text.slice(0, 200000),
+            document_category: "nao_classificado",
+            created_by: userId,
+          });
+          if (insertError) throw new Error(insertError.message);
+        }
+      }
+      // O original é guardado como fonte, sem competir com os documentos-filhos.
+      await supabase.from("parcels").delete().eq("document_id", doc.id);
+      const { error: sourceError } = await supabase.from("documents").update({
+        status: "parsed", extracted_text: text.slice(0, 200000), error_message: note ?? null,
+      }).eq("id", doc.id);
+      if (sourceError) throw new Error(sourceError.message);
+      const { data: filhos, error: childrenError } = await supabase.from("documents")
+        .select("id").eq("source_document_id", doc.id).order("source_parcel_index");
+      if (childrenError || !filhos) throw new Error("Falha ao listar os trechos separados.");
+      for (const filho of filhos) {
+        // Cada filho é processado sem baixar o PDF novamente (nem repetir OCR).
+        const { error: deleteError } = await supabase.from("parcels").delete().eq("document_id", filho.id);
+        if (deleteError) throw new Error(deleteError.message);
+      }
+      // A persistência das parcelas usa o ID de cada filho abaixo.
+      var destinos = filhos.map((f) => f.id);
+    }
 
-    for (const parsed of parcelas) {
+    if (!destinos) {
+      const { error: deleteError } = await supabase.from("parcels").delete().eq("document_id", doc.id);
+      if (deleteError) throw new Error(deleteError.message);
+    }
+
+    for (const [index, parsed] of parcelas.entries()) {
+      const destinoId = destinos?.[index] ?? doc.id;
       const { data: parcel, error: parcelError } = await supabase
         .from("parcels")
         .insert({
-          document_id: doc.id,
+          document_id: destinoId,
           analysis_id: doc.analysis_id,
           label: parsed.label,
           area_m2: parsed.area_m2,
@@ -158,6 +213,12 @@ export const processDocument = createServerFn({ method: "POST" })
         error_message: note ?? null,
       })
       .eq("id", doc.id);
+
+    if (destinos?.length) {
+      const { error: childStatusError } = await supabase.from("documents")
+        .update({ status: "parsed", error_message: null }).in("id", destinos);
+      if (childStatusError) throw new Error(childStatusError.message);
+    }
 
     await supabase.from("audit_logs").insert({
       actor_id: userId,
