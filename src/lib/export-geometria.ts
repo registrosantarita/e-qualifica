@@ -77,11 +77,12 @@ export async function montarDwg(parcel: ParcelExport): Promise<{ bytes: Uint8Arr
 
   const { CadDocument, DwgWriter, ACadVersion, Line, XYZ } = await import("@node-projects/acad-ts");
   const doc = new CadDocument();
+  if (!doc.header || !doc.modelSpace) throw new Error("Não foi possível iniciar o desenho CAD.");
   doc.header.version = ACadVersion.AC1027;
   for (let i = 0; i < coords.length - (closed ? 0 : 1); i++) {
     const a = coords[i];
     const b = coords[(i + 1) % coords.length];
-    if (a && b) doc.modelSpace.addEntity(new Line(new XYZ(a.x, a.y, a.z), new XYZ(b.x, b.y, b.z)));
+    if (a && b) doc.modelSpace.entities.add(new Line(new XYZ(a.x, a.y, a.z), new XYZ(b.x, b.y, b.z)));
   }
   const bytes = DwgWriter.writeToBuffer(doc);
   if (bytes.length < 100 || new TextDecoder().decode(bytes.slice(0, 2)) !== "AC") throw new Error("O arquivo DWG gerado não passou na validação.");
