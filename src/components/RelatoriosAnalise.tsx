@@ -129,7 +129,7 @@ export function RelatoriosAnalise({
           emitidoEm: new Date(c.created_at).toLocaleString("pt-BR"),
           documentoA: nomeDoc(c.document_a_id),
           documentoB: nomeDoc(c.document_b_id),
-          tolerancias: (c.tolerances ?? {}) as Record<string, number>,
+           tolerancias: (c.tolerances ?? {}) as Record<string, number | boolean>,
           contagens: counts,
           trechos: lerTrechos(metrics),
           extensaoConferidaM: extensao,

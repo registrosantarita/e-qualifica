@@ -204,7 +204,7 @@ export type RelatorioPdfInput = {
   emitidoEm: string;
   documentoA: string;
   documentoB: string;
-  tolerancias: Record<string, number | undefined>;
+  tolerancias: Record<string, number | boolean | undefined>;
   contagens: Record<string, number | undefined>;
   trechos?: TrechoConferido[];
   extensaoConferidaM?: number | null;
@@ -417,7 +417,7 @@ export function exportarRelatorioPdf(
     });
 
 
-    const confrontacoes = agruparConfrontantes(trechos);
+    const confrontacoes = input.tolerancias["ignoreConfrontations"] ? [] : agruparConfrontantes(trechos);
     if (confrontacoes.length > 0) {
       const yConfTabela = secao(
         (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 24,

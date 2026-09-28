@@ -253,7 +253,7 @@ export function compararLoteComBloco(
   }
 
   // Nomes grafados na planta (rua de frente e vizinhos) x confrontantes do memorial.
-  const nomesPlanta = [...bloco.logradouros, ...bloco.rotulos];
+  const nomesPlanta = tol.ignoreConfrontations ? [] : [...bloco.logradouros, ...bloco.rotulos];
   const nomesMemorial = [
     ...memorial.confrontantes,
     ...memorial.segments.map((s) => s.confrontante ?? ""),
@@ -281,7 +281,7 @@ export function compararLoteComBloco(
     });
   }
 
-  if (nomesMemorial.length > 0 && nomesSemCorrespondencia.length > 0) {
+  if (!tol.ignoreConfrontations && nomesMemorial.length > 0 && nomesSemCorrespondencia.length > 0) {
     findings.push({
       severity: "moderate",
       code: "CONFRONTANTE_PLANTA_SEM_CORRESPONDENCIA",
@@ -294,7 +294,7 @@ export function compararLoteComBloco(
         confrontantes_memorial: nomesMemorial,
       },
     });
-  } else if (nomesPlanta.length === 0) {
+  } else if (!tol.ignoreConfrontations && nomesPlanta.length === 0) {
     findings.push({
       severity: "informative",
       code: "PLANTA_SEM_ROTULO_TEXTUAL",

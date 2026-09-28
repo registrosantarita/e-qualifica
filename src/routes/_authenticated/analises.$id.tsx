@@ -37,6 +37,7 @@ import { baixarGeometria, montarDwg, montarKml, montarKmz } from "@/lib/export-g
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -1539,6 +1540,18 @@ function AnaliseDetalhe() {
               Área e perímetro conferem quando a diferença fica dentro do
               percentual <em>ou</em> da medida absoluta informada.
             </p>
+            <div className="mt-4 flex items-center gap-2">
+              <Checkbox
+                id="ignoreConfrontations"
+                checked={tol.ignoreConfrontations ?? false}
+                onCheckedChange={(checked) =>
+                  setTol((atual) => ({ ...atual, ignoreConfrontations: checked === true }))
+                }
+              />
+              <Label htmlFor="ignoreConfrontations" className="cursor-pointer">
+                Ignorar confrontações
+              </Label>
+            </div>
 
 
             <div className="mt-6 flex flex-wrap items-center gap-3">

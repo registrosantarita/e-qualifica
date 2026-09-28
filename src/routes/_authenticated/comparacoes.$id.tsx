@@ -248,7 +248,7 @@ function Relatorio() {
 
   const c = comparison.data;
   const cls = CLASSIFICACAO[c.classification ?? "inconclusive"]!;
-  const tol = (c.tolerances ?? {}) as Record<string, number>;
+   const tol = (c.tolerances ?? {}) as Record<string, number | boolean>;
   const metrics = (c.metrics ?? {}) as Record<string, unknown>;
   const counts = (metrics["counts"] ?? {}) as Record<string, number>;
   const trechos = lerTrechos(metrics);
@@ -365,6 +365,9 @@ function Relatorio() {
         </dl>
 
         <h3 className="mt-6 text-base">Tolerâncias adotadas</h3>
+         {tol["ignoreConfrontations"] === true && (
+           <p className="mt-2 text-sm text-muted-foreground">Confrontações ignoradas nesta comparação.</p>
+         )}
         <dl className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-5">
           {[
             ["Área", `${fmtNum(tol["areaPct"] ?? null, 2)} %`],
@@ -400,6 +403,7 @@ function Relatorio() {
         const temConsolidado = (consolidado.data?.comps.length ?? 0) > 1;
         const tabelaConsolidada = temConsolidado ? (
           <TrechosConsolidados
+             ignorarConfrontacoes={tol["ignoreConfrontations"] === true}
             docA={{
               indice: indiceA,
               nome: nomeDocOrdem(c.document_a_id),
@@ -419,6 +423,7 @@ function Relatorio() {
 
         const parAPar = (
           <TrechosConferidos
+             ignorarConfrontacoes={tol["ignoreConfrontations"] === true}
             trechos={trechos}
             extensaoM={extensaoConferida}
             labelA={nomeDoc(c.document_a_id)}
