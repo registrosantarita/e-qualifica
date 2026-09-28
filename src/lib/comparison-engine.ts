@@ -22,6 +22,8 @@ export type Tolerances = {
   areaM2: number;
   /** Tolerância absoluta de perímetro, em metros lineares. */
   perimeterM: number;
+  /** Desconsidera nomes de confrontantes em achados e classificação. */
+  ignoreConfrontations?: boolean;
 };
 
 export const DEFAULT_TOLERANCES: Tolerances = {
@@ -32,6 +34,7 @@ export const DEFAULT_TOLERANCES: Tolerances = {
   altitudeM: 0,
   areaM2: 0,
   perimeterM: 0,
+  ignoreConfrontations: false,
 };
 
 /** Área/perímetro conferem quando ficam dentro do percentual OU da medida absoluta. */
@@ -422,7 +425,7 @@ export function compareParcels(
     });
 
 
-    if (sa.confrontante && sb.confrontante) {
+    if (!tol.ignoreConfrontations && sa.confrontante && sb.confrontante) {
       if (normalizeConfrontante(sa.confrontante) !== normalizeConfrontante(sb.confrontante)) {
         problems.push(`confrontante "${sa.confrontante}" x "${sb.confrontante}"`);
       }
@@ -443,8 +446,8 @@ export function compareParcels(
           seq_a: pair.ia + 1,
           seq_b: pair.ib + 1,
           invertido: alignment.reversed,
-          a: sa,
-          b: sb,
+          a: tol.ignoreConfrontations ? { ...sa, confrontante: null } : sa,
+          b: tol.ignoreConfrontations ? { ...sb, confrontante: null } : sb,
           problems,
         },
       });
@@ -537,33 +540,35 @@ export function compareParcels(
 
 
   // --- Confrontantes (reciprocidade) ---
-  const setA = new Map(a.confrontantes.map((c) => [normalizeConfrontante(c), c]));
-  const setB = new Map(b.confrontantes.map((c) => [normalizeConfrontante(c), c]));
-  const onlyA = [...setA].filter(([k]) => !setB.has(k)).map(([, v]) => v);
-  const onlyB = [...setB].filter(([k]) => !setA.has(k)).map(([, v]) => v);
-  metrics["confrontantes_only_a"] = onlyA;
-  metrics["confrontantes_only_b"] = onlyB;
-  if (onlyA.length > 0 || onlyB.length > 0) {
-    findings.push({
-      severity: "moderate",
-      code: "CONFRONTANTES_DIVERGENTES",
-      title: "Confrontantes divergentes",
-      description: [
-        onlyA.length ? `Somente em ${labels.a}: ${onlyA.join(", ")}.` : "",
-        onlyB.length ? `Somente em ${labels.b}: ${onlyB.join(", ")}.` : "",
-      ]
-        .filter(Boolean)
-        .join(" "),
-      evidence: { onlyA, onlyB },
-    });
-  } else if (setA.size > 0) {
-    findings.push({
-      severity: "informative",
-      code: "CONFRONTANTES_COMPATIVEIS",
-      title: "Confrontantes compatíveis",
-      description: `Os ${setA.size} confrontantes identificados coincidem tecnicamente entre os documentos.`,
-      evidence: { confrontantes: [...setA.values()] },
-    });
+  if (!tol.ignoreConfrontations) {
+    const setA = new Map(a.confrontantes.map((c) => [normalizeConfrontante(c), c]));
+    const setB = new Map(b.confrontantes.map((c) => [normalizeConfrontante(c), c]));
+    const onlyA = [...setA].filter(([k]) => !setB.has(k)).map(([, v]) => v);
+    const onlyB = [...setB].filter(([k]) => !setA.has(k)).map(([, v]) => v);
+    metrics["confrontantes_only_a"] = onlyA;
+    metrics["confrontantes_only_b"] = onlyB;
+    if (onlyA.length > 0 || onlyB.length > 0) {
+      findings.push({
+        severity: "moderate",
+        code: "CONFRONTANTES_DIVERGENTES",
+        title: "Confrontantes divergentes",
+        description: [
+          onlyA.length ? `Somente em ${labels.a}: ${onlyA.join(", ")}.` : "",
+          onlyB.length ? `Somente em ${labels.b}: ${onlyB.join(", ")}.` : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+        evidence: { onlyA, onlyB },
+      });
+    } else if (setA.size > 0) {
+      findings.push({
+        severity: "informative",
+        code: "CONFRONTANTES_COMPATIVEIS",
+        title: "Confrontantes compatíveis",
+        description: `Os ${setA.size} confrontantes identificados coincidem tecnicamente entre os documentos.`,
+        evidence: { confrontantes: [...setA.values()] },
+      });
+    }
   }
 
   // --- Classificação final ---

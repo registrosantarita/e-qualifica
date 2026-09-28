@@ -22,6 +22,7 @@ type Props = {
   indiceA?: number;
   /** Posição do documento comparado na ordem de upload: 1 → B, 2 → C... */
   indiceB?: number;
+  ignorarConfrontacoes?: boolean;
 };
 
 /** Valores empilhados: documento A acima, documento comparado abaixo. */
@@ -92,6 +93,7 @@ export function TrechosConferidos({
   verticesB,
   indiceA = 0,
   indiceB = 1,
+  ignorarConfrontacoes = false,
 }: Props) {
   if (trechos.length === 0) return null;
   const corA = docColor(indiceA);
@@ -284,7 +286,7 @@ export function TrechosConferidos({
 
       </section>
 
-      {confrontacoes.length > 0 && (
+      {!ignorarConfrontacoes && confrontacoes.length > 0 && (
         <section className="panel mt-8 p-6">
           <h2 className="text-lg">Imóveis confrontantes</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

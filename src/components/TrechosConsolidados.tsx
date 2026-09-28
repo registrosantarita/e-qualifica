@@ -19,6 +19,7 @@ type Props = {
     vertices?: Map<string, VertexCoordRow> | undefined;
   };
   comparados: DocComparado[];
+  ignorarConfrontacoes?: boolean;
 };
 
 const vname = (v: string | null | undefined): string =>
@@ -60,7 +61,7 @@ function Icone({ ok, comparado }: { ok: boolean; comparado: boolean }) {
  * tabela: o paradigma sempre na primeira linha de cada célula e cada documento
  * comparado logo abaixo, na cor que o identifica.
  */
-export function TrechosConsolidados({ docA, comparados }: Props) {
+export function TrechosConsolidados({ docA, comparados, ignorarConfrontacoes = false }: Props) {
   if (comparados.length === 0) return null;
 
   const corA = docColor(docA.indice);
@@ -328,7 +329,7 @@ export function TrechosConsolidados({ docA, comparados }: Props) {
         </div>
       </section>
 
-      {maxGrupos > 0 && (
+      {!ignorarConfrontacoes && maxGrupos > 0 && (
         <section className="panel mt-8 p-6">
           <h2 className="text-lg">Imóveis confrontantes — consolidado</h2>
           <div className="mt-5 overflow-x-auto">

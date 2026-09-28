@@ -315,6 +315,7 @@ const CompareInput = z.object({
       altitudeM: z.number().min(0).max(10000),
       areaM2: z.number().min(0).default(0),
       perimeterM: z.number().min(0).default(0),
+      ignoreConfrontations: z.boolean().default(false),
     })
     .optional(),
 });
@@ -495,6 +496,7 @@ const BatchInput = z.object({
       altitudeM: z.number().min(0).max(10000),
       areaM2: z.number().min(0).default(0),
       perimeterM: z.number().min(0).default(0),
+      ignoreConfrontations: z.boolean().default(false),
     })
     .optional(),
 });

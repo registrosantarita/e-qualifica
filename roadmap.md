@@ -1,4 +1,5 @@
 # Tarefas
+- [x] Adicionar “Ignorar confrontações” às tolerâncias do GeoConfronto, omitir a conferência de nomes e a seção de confrontações no PDF.
 - [x] Corrigir rodapé de assinatura intercalado ao caminhamento 13→14 na prenotação 91.356 e testar os dois PDFs nativos.
 - [x] Reduzir os quadros das análises do GeoConfronto para aproximadamente um quarto da área, preservando seleção e ações.
 - [x] Permitir renomear análises do GeoConfronto no painel.
