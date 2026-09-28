@@ -764,6 +764,27 @@ const PROSE_START_RE = new RegExp(
 );
 const PROSE_CONFRONT_RE = /confront(?:ando|a|ante|antes|ação)?\s*(?:-se)?\s*(?:com|:)\s*([^:;]{2,140}?)(?:,\s*com\s+os\s+seguintes|;|\.|:)/gi;
 
+/** Repara apenas a grafia do azimute quando o contexto do caminhamento é inequívoco.
+ * Valores de distância sem separador não são reconstruídos por adivinhação. */
+function repairProseBearings(text: string): { text: string; repairs: string[] } {
+  const repairs: string[] = [];
+  const measure = String.raw`\s+e\s+[\dOoDIlZzASsGTBbgq.,/]+\s*(?:m|metros)\s+at[ée]\s+`;
+  const record = (before: string, after: string) => {
+    if (before !== after) repairs.push(`${before} → ${after}`);
+    return after;
+  };
+  let result = text.replace(new RegExp(String.raw`\b(\d{1,3})\s*([°º])\s*[%/]?\s*(\d{2})(?!\d)(${measure})`, "gi"),
+    (match, degree: string, symbol: string, minute: string, rest: string) =>
+      record(match, `${degree}${symbol}${minute}'${rest}`));
+  result = result.replace(new RegExp(String.raw`\b(\d{3})(\d{2})(${measure})`, "gi"),
+    (match, degree: string, minute: string, rest: string) =>
+      Number(degree) <= 359 && Number(minute) < 60
+        ? record(match, `${degree}°${minute}'${rest}`) : match);
+  result = result.replace(/\b(\d{1,3}),\s*\/\s*(\d{1,3})\s*(?=m\s+at[ée])/gi,
+    (match, whole: string, fraction: string) => record(match, `${whole},${fraction} `));
+  return { text: result, repairs };
+}
+
 /** Caminhamento com destino depois da confrontação: "... até atingir o ponto 2". */
 const ARRIVAL_SEG_RE = new RegExp(
   String.raw`azimute\s*(?:de|:)?\s*(\d{1,3}\s*[°º]\s*\d{1,2}\s*[${APOS}]\s*\d{1,2}(?:[.,]\d+)?\s*(?:[${SEC}]|[${APOS}]{1,2})?)\s*(?:,|e)?\s*dist[âa]ncia\s*(?:de|:)?\s*(${OCR_DIGIT_TOKEN})\s*(?:m|metros)\b([^;]{0,240}?)\bat[ée]\s+atingir\s+(?:o\s+)?(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{0,20})\b`,
@@ -815,6 +836,8 @@ function parseArrivalSegments(flat: string): StructuredParse | null {
 }
 
 function parseProseSegments(flat: string): StructuredParse | null {
+  const repaired = repairProseBearings(flat);
+  flat = repaired.text;
   const start = PROSE_START_RE.exec(flat);
   if (!start) return null;
 
@@ -857,6 +880,7 @@ function parseProseSegments(flat: string): StructuredParse | null {
 
   const segments: ParsedSegment[] = [];
   const ocrFixes: string[] = [];
+  const dubious: string[] = [];
   PROSE_SEG_RE.lastIndex = 0;
   for (const m of flat.matchAll(PROSE_SEG_RE)) {
     const [, azRawBruto, distRaw, to, lonRaw, latRaw, altRaw] = m;
@@ -870,6 +894,14 @@ function parseProseSegments(flat: string): StructuredParse | null {
     const az = parseAzimuthText(azRaw);
     const dist = parseNumberOcr(distRaw!);
     if (dist.corrigido) ocrFixes.push(dist.corrigido);
+    const previousCoord = coords.get(prevName.toUpperCase());
+    const nextCoord = coords.get(to!.toUpperCase());
+    const geometric = previousCoord && nextCoord ? geometryBetween(previousCoord, nextCoord).distance : null;
+    // A medida geodésica calculada é apenas uma checagem de plausibilidade,
+    // não substitui a distância declarada no documento.
+    const distanceValid = dist.value !== null && dist.value > 0 &&
+      (geometric === null || Math.abs(dist.value - geometric) <= Math.max(2, geometric * 0.08));
+    if (!distanceValid) dubious.push(`${prevName} → ${to}: distância ${distRaw} m incompatível ou ilegível${geometric !== null ? ` (coordenadas indicam cerca de ${geometric.toFixed(1)} m)` : ""}; conferir no PDF.`);
     segments.push({
       seq: segments.length + 1,
       from_vertex: prevName,
@@ -877,7 +909,7 @@ function parseProseSegments(flat: string): StructuredParse | null {
       bearing_text: azRaw.trim(),
       azimuth_deg: az === null ? null : normalizeAzimuth(az),
 
-      distance_m: dist.value,
+      distance_m: distanceValid ? dist.value : null,
       altitude_from_m: prevAlt,
       altitude_to_m: alt,
       confrontante: confrontanteEm(m.index ?? 0),
@@ -887,8 +919,21 @@ function parseProseSegments(flat: string): StructuredParse | null {
     prevAlt = alt;
   }
 
+  // Um destino escrito no memorial mas não interpretado não pode ser pulado:
+  // a sequência posterior pareceria válida embora esteja faltando um trecho.
+  const destinations = [...flat.matchAll(/\bat[ée]\s+(?:o\s+)?v[ée]rtice\s+([A-Z0-9][\w\-.]{1,20})\b/gi)]
+    .map((m) => m[1]!.toUpperCase());
+  const parsedDestinations = segments.map((s) => s.to_vertex?.toUpperCase());
+  if (destinations.length > parsedDestinations.length) {
+    const missing = destinations.filter((name, i) => name !== parsedDestinations[i]);
+    dubious.push(`Sequência incompleta: ${destinations.length} destinos no texto, ${parsedDestinations.length} trechos lidos${missing.length ? `; conferir ${[...new Set(missing)].slice(0, 8).join(", ")}` : ""}.`);
+  }
   return segments.length >= 3
-    ? { segments, coords, ...(ocrFixes.length ? { warnings: [avisoOcr(ocrFixes)] } : {}) }
+    ? { segments, coords, warnings: [
+        ...(repaired.repairs.length ? [`Pontuação de medidas restaurada no texto (${repaired.repairs.length}); conferir os azimutes e distâncias no PDF.`] : []),
+        ...(ocrFixes.length ? [avisoOcr(ocrFixes)] : []),
+        ...dubious,
+      ] }
     : null;
 }
 
