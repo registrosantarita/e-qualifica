@@ -13,3 +13,4 @@
 - A extração de PDFs preserva limites de página para retirar cabeçalhos e rodapés de assinatura repetidos antes da análise; textos intercalados quebram frases e trechos perimetrais.
 - No GeoConfronto, um arquivo original pode gerar documentos-filhos independentes por descrição perimétrica, ligados à fonte; apenas a fonte guarda o PDF para evitar uploads e OCR duplicados.
 - Exportações geométricas do GeoConfronto são feitas no navegador a partir dos vértices extraídos: KML/KMZ só com lon/lat válidas e DWG com E/N originais ou projeção WGS84 para UTM local, sem inventar coordenadas ausentes.
+- A opção “Ignorar confrontações” fica registrada nas tolerâncias de cada comparação GeoConfronto; o motor desconsidera os nomes e o PDF omite a tabela de confrontações, preservando as medidas e o histórico de cada resultado.
