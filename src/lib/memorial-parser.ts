@@ -776,6 +776,8 @@ function repairProseBearings(text: string): { text: string; repairs: string[] } 
   let result = text.replace(new RegExp(String.raw`\b(\d{1,3})\s*([°º])\s*[%/]?\s*(\d{2})(?!\d)(${measure})`, "gi"),
     (match, degree: string, symbol: string, minute: string, rest: string) =>
       record(match, `${degree}${symbol}${minute}'${rest}`));
+  result = result.replace(/\b(\d{1,3}[°º])\s*[%/]\s*(\d{2}')/gi,
+    (match, degree: string, minute: string) => record(match, `${degree}${minute}`));
   result = result.replace(new RegExp(String.raw`\b(\d{3})(\d{2})(${measure})`, "gi"),
     (match, degree: string, minute: string, rest: string) =>
       Number(degree) <= 359 && Number(minute) < 60
