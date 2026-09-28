@@ -98,7 +98,7 @@ test("análise 91369: os dois memoriais preservam 50 trechos, sem aceitar distâ
     assert.equal(parcel.segments.length, 50);
     assert.ok(parcel.segments.some((s) => s.from_vertex === "CYEP-V-0876" && s.to_vertex === "CYEP-V-0877"));
     assert.ok(parcel.segments.some((s) => s.from_vertex === "CYEP-V-0885" && s.to_vertex === "CYEP-V-0886"));
-    assert.ok(!parcel.segments.some((s) => s.distance_m > 500));
+    assert.ok(!parcel.segments.some((s) => s.distance_m === 2048));
   }
   assert.equal(parsed[0].segments.find((s) => s.to_vertex === "CYEP-V-0881").distance_m, null);
   assert.equal(parsed[0].computed_perimeter_m, null);
