@@ -86,6 +86,34 @@ test("os dois PDFs enviados produzem o mesmo caminhamento completo", async () =>
   assert.deepEqual(parsed[0].segments.map((s) => [s.from_vertex, s.to_vertex, s.distance_m, s.azimuth_deg]), parsed[1].segments.map((s) => [s.from_vertex, s.to_vertex, s.distance_m, s.azimuth_deg]));
 });
 
+test("análise 91369: os dois memoriais preservam 50 trechos, sem aceitar distâncias corrompidas", async () => {
+  const files = ["04._Memorial_Descritivo-4.pdf", "06._Memorial_Descritivo_-_SIGEF-2.pdf"];
+  if (!files.every((name) => { try { readFileSync(`/mnt/user-uploads/${name}`); return true; } catch { return false; } })) return;
+  const parsed = await Promise.all(files.map(async (name) => {
+    const bytes = readFileSync(`/mnt/user-uploads/${name}`);
+    const text = await extractPdfText(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    return parseParcelas(text, false)[0];
+  }));
+  for (const parcel of parsed) {
+    assert.equal(parcel.segments.length, 50);
+    assert.ok(parcel.segments.some((s) => s.from_vertex === "CYEP-V-0876" && s.to_vertex === "CYEP-V-0877"));
+    assert.ok(parcel.segments.some((s) => s.from_vertex === "CYEP-V-0885" && s.to_vertex === "CYEP-V-0886"));
+    assert.ok(!parcel.segments.some((s) => s.distance_m === 2048));
+  }
+  assert.equal(parsed[0].segments.find((s) => s.to_vertex === "CYEP-V-0881").distance_m, null);
+  assert.equal(parsed[0].computed_perimeter_m, null);
+  assert.ok(parsed[0].warnings.some((w) => w.includes("distância não confirmada")));
+  assert.equal(parsed[1].segments.find((s) => s.to_vertex === "CYEP-V-0881").distance_m, 20.48);
+  assert.ok(Math.abs(parsed[1].computed_perimeter_m - 2803.78) < 1);
+});
+
+test("saltos na numeração e divergência perimetral exigem conferência, sem fabricar vértices", () => {
+  const text = `Perímetro: 30,00 m. Inicia-se no vértice ABC-001 (Longitude -47°29'00,000\" Latitude -21°44'00,000\" Altitude 600 m); 90º00' e 10,00 m até o vértice ABC-003 (Longitude -47°28'59,700\" Latitude -21°44'00,000\" Altitude 600 m); 90º00' e 10,00 m até o vértice ABC-004 (Longitude -47°28'59,400\" Latitude -21°44'00,000\" Altitude 600 m); 90º00' e 10,00 m até o vértice ABC-005 (Longitude -47°28'59,100\" Latitude -21°44'00,000\" Altitude 600 m);`;
+  const parcel = parseMemorial(text);
+  assert.ok(parcel.warnings.some((w) => w.includes("ABC-001 → ABC-003")));
+  assert.ok(!parcel.segments.some((s) => s.to_vertex === "ABC-002"));
+});
+
 test("escritura e instrumento particular separam dez faixas sem duplicar os anexos", async () => {
   for (const [name, expected] of [
     ["02._Escritura_Pública.PDF", [26286, 3792, 96, 73179, 109, 76, 2929, 2111, 3998, 2485]],
