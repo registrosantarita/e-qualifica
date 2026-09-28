@@ -126,7 +126,7 @@ function AnaliseDetalhe() {
   const [tipo, setTipo] = useState("memorial_to_memorial");
   const [tol, setTol] = useState(DEFAULT_TOLERANCES);
   const [unidadeArea, setUnidadeArea] = useState<"m2" | "ha">("m2");
-  /** Acordeões de documentos expandidos para facilitar acesso às ações. */
+  /** Documentos começam recolhidos; a barra de ações permanece acessível. */
   const [openDocs, setOpenDocs] = useState<string[]>([]);
 
   const analysis = useQuery({
@@ -519,16 +519,9 @@ function AnaliseDetalhe() {
     if (tipoSugerido) setTipo(tipoSugerido);
   }, [tipoSugerido]);
 
-  useEffect(() => {
-    if (!documents.data || !parcels.data) return;
-    const parsedWithParcel = documents.data
-      .filter((d) => d.status === "parsed")
-      .filter((d) => parcels.data!.some((p) => p.document_id === d.id))
-      .map((d) => d.id);
-    if (openDocs.length === 0 && parsedWithParcel.length > 0) {
-      setOpenDocs(parsedWithParcel);
-    }
-  }, [documents.data, parcels.data]);
+  const documentosVisiveis = (documents.data ?? []).filter(
+    (d) => !(documents.data ?? []).some((filho) => filho.source_document_id === d.id),
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -796,7 +789,19 @@ function AnaliseDetalhe() {
           </section>
 
           <section>
-            <h2 className="text-xl">Documentos da análise</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl">Documentos da análise</h2>
+              {documentosVisiveis.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setOpenDocs(documentosVisiveis.map((d) => d.id))}>
+                    Expandir todos
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setOpenDocs([])}>
+                    Recolher todos
+                  </Button>
+                </div>
+              )}
+            </div>
             {documents.isLoading ? (
               <p className="mt-4 text-sm text-muted-foreground">Carregando...</p>
             ) : (documents.data ?? []).length === 0 ? (
@@ -810,7 +815,7 @@ function AnaliseDetalhe() {
                 value={openDocs}
                 onValueChange={setOpenDocs}
               >
-                {documents.data!.filter((d) => !documents.data!.some((filho) => filho.source_document_id === d.id)).map((d) => {
+                {documentosVisiveis.map((d) => {
                   const parcel = (parcels.data ?? []).find(
                     (p) => p.document_id === d.id,
                   );
@@ -877,8 +882,7 @@ function AnaliseDetalhe() {
                   };
                   return (
                     <AccordionItem key={d.id} value={d.id}>
-                      <div className="flex w-full items-center gap-2">
-                      <AccordionTrigger className="flex-1 text-left">
+                      <AccordionTrigger className="text-left">
                         <div className="flex w-full flex-wrap items-center gap-3 pr-3">
                           <span className="font-display text-base">
                             {d.file_name ?? "Texto colado"}
@@ -912,38 +916,37 @@ function AnaliseDetalhe() {
                           </span>
                         </div>
                       </AccordionTrigger>
-                      <div className="flex shrink-0 flex-wrap items-center gap-1">
-                        {parcel && (parcel.segments ?? []).length > 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 text-[11px]"
-                            onClick={gerarMatricula}
-                          >
-                            Extrair texto para Matrícula
-                          </Button>
+
+                      <div className="flex flex-wrap items-center gap-2 pb-4 text-xs text-muted-foreground">
+                        {parcel && (
+                          <span className="mr-2">
+                            Área: {fmtNum(parcel.area_m2)} m² · Perímetro: {fmtNum(parcel.computed_perimeter_m)} m · {parcel.vertex_count} vértices
+                          </span>
                         )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-[11px]"
-                          disabled={reprocessar.isPending}
-                          onClick={() => reprocessar.mutate(d.id)}
-                        >
-                          Reprocessar análise
+                        <Button variant="outline" size="sm" disabled={reprocessar.isPending} onClick={() => reprocessar.mutate(d.id)}>
+                          Reprocessar extração
                         </Button>
                         {admin.data?.admin && (
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+                            className="border-destructive text-destructive hover:border-destructive hover:text-destructive"
                             disabled={excluirDoc.isPending}
                             onClick={excluirDocumento}
                           >
                             Excluir documento
                           </Button>
                         )}
-                      </div>
+                        {parcel && (parcel.segments ?? []).length > 0 && (
+                          <>
+                            <Button size="sm" onClick={gerarMatricula}>Gerar descrição para Matrícula</Button>
+                            {(["kml", "kmz", "dwg"] as const).map((formato) => (
+                              <Button key={formato} variant="outline" size="sm" onClick={() => void exportarGeometria(formato)}>
+                                Exportar em {formato.toUpperCase()}
+                              </Button>
+                            ))}
+                          </>
+                        )}
                       </div>
 
                       <AccordionContent>
@@ -1131,43 +1134,6 @@ function AnaliseDetalhe() {
                             Nenhum dado técnico extraído deste documento.
                           </p>
                         )}
-                        <div className="mt-5 flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={reprocessar.isPending}
-                            onClick={() => reprocessar.mutate(d.id)}
-                          >
-                            Reprocessar extração
-                          </Button>
-                          {admin.data?.admin && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={excluirDoc.isPending}
-                              className="text-muted-foreground hover:text-destructive"
-                              onClick={excluirDocumento}
-                            >
-                              Excluir documento
-                            </Button>
-                          )}
-
-                          {parcel && (parcel.segments ?? []).length > 0 && (
-                            <>
-                              <Button size="sm" onClick={gerarMatricula}>
-                                Gerar descrição para Matrícula
-                              </Button>
-                              {(["kml", "kmz", "dwg"] as const).map((formato) => (
-                                <Button key={formato} variant="outline" size="sm" onClick={() => void exportarGeometria(formato)}>
-                                  Exportar em {formato.toUpperCase()}
-                                </Button>
-                              ))}
-                            </>
-                          )}
-
-                        </div>
-
-
                       </AccordionContent>
                     </AccordionItem>
                   );
@@ -1535,23 +1501,25 @@ function AnaliseDetalhe() {
                   />
                 </div>
               ))}
+              <div className="flex items-end md:pb-2 sm:col-span-2 md:col-span-1">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="ignoreConfrontations"
+                    checked={tol.ignoreConfrontations ?? false}
+                    onCheckedChange={(checked) =>
+                      setTol((atual) => ({ ...atual, ignoreConfrontations: checked === true }))
+                    }
+                  />
+                  <Label htmlFor="ignoreConfrontations" className="cursor-pointer text-sm md:whitespace-nowrap lg:text-base">
+                    Ignorar confrontações
+                  </Label>
+                </div>
+              </div>
             </div>
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
               Área e perímetro conferem quando a diferença fica dentro do
               percentual <em>ou</em> da medida absoluta informada.
             </p>
-            <div className="mt-4 flex items-center gap-2">
-              <Checkbox
-                id="ignoreConfrontations"
-                checked={tol.ignoreConfrontations ?? false}
-                onCheckedChange={(checked) =>
-                  setTol((atual) => ({ ...atual, ignoreConfrontations: checked === true }))
-                }
-              />
-              <Label htmlFor="ignoreConfrontations" className="cursor-pointer">
-                Ignorar confrontações
-              </Label>
-            </div>
 
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
