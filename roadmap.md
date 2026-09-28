@@ -1,4 +1,5 @@
 # Tarefas
+- [ ] Ajustar checkbox de confrontações junto à Distância; manter ações junto às informações dos documentos, iniciar lista recolhida e oferecer controles gerais de expansão.
 - [x] Adicionar “Ignorar confrontações” às tolerâncias do GeoConfronto, omitir a conferência de nomes e a seção de confrontações no PDF.
 - [x] Corrigir rodapé de assinatura intercalado ao caminhamento 13→14 na prenotação 91.356 e testar os dois PDFs nativos.
 - [x] Reduzir os quadros das análises do GeoConfronto para aproximadamente um quarto da área, preservando seleção e ações.
