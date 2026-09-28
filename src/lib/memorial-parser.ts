@@ -927,7 +927,8 @@ function parseProseSegments(flat: string): StructuredParse | null {
     .map((m) => m[1]!.toUpperCase());
   const parsedDestinations = segments.map((s) => s.to_vertex?.toUpperCase());
   if (destinations.length > parsedDestinations.length) {
-    const missing = destinations.filter((name, i) => name !== parsedDestinations[i]);
+    const parsed = new Set(parsedDestinations);
+    const missing = destinations.filter((name) => !parsed.has(name));
     dubious.push(`Sequência incompleta: ${destinations.length} destinos no texto, ${parsedDestinations.length} trechos lidos${missing.length ? `; conferir ${[...new Set(missing)].slice(0, 8).join(", ")}` : ""}.`);
   }
   return segments.length >= 3
@@ -996,7 +997,9 @@ export function parseMemorial(text: string): ParsedParcel {
         if (a && b) {
           const g = geometryBetween(a, b);
           if (s.azimuth_deg === null) s.azimuth_deg = g.azimuth;
-          if (s.distance_m === null) s.distance_m = g.distance;
+          // Nunca substituir por distância calculada uma medida que consta no
+          // documento mas cuja camada de texto está ilegível/incompatível.
+          if (s.distance_m === null && !/\b[\dOoDIlZzASsGTBbgq.,/]+\s*m\s+at[ée]\b/i.test(s.raw_text)) s.distance_m = g.distance;
         }
       }
     });
@@ -1145,10 +1148,28 @@ export function parseMemorial(text: string): ParsedParcel {
     );
   }
 
+  // Uma ligação contínua entre trechos não prova que a transcrição não saltou
+  // um vértice. Só sinalizar saltos quando os códigos compartilham prefixo e
+  // numeração consecutiva; nunca criar um trecho a partir de um número ausente.
+  for (const segment of segments) {
+    const from = /^(.*?)(\d+)$/.exec(segment.from_vertex ?? "");
+    const to = /^(.*?)(\d+)$/.exec(segment.to_vertex ?? "");
+    if (from && to && from[1] === to[1] && Number(to[2]) - Number(from[2]) > 1) {
+      warnings.push(`Possível salto de vértices ${segment.from_vertex} → ${segment.to_vertex}; conferir trechos intermediários no PDF.`);
+    }
+  }
+
+  const missingMeasures = segments.filter((s) => s.distance_m === null).length;
+  if (missingMeasures) warnings.push(`${missingMeasures} trecho(s) com distância não confirmada; o perímetro calculado não é confiável.`);
+
   const computedPerimeter = segments.reduce(
     (acc, s) => acc + (s.distance_m ?? 0),
     0,
   );
+  if (!missingMeasures && declaredPerimeter !== null && segments.length > 0 &&
+    Math.abs(computedPerimeter - declaredPerimeter) > Math.max(2, declaredPerimeter * 0.01)) {
+    warnings.push(`Perímetro dos trechos (${computedPerimeter.toFixed(2)} m) diverge do declarado (${declaredPerimeter.toFixed(2)} m); conferir a sequência e as medidas.`);
+  }
 
   const vertices = new Set<string>();
   segments.forEach((s) => {
@@ -1192,7 +1213,7 @@ export function parseMemorial(text: string): ParsedParcel {
     label: matricula ? `Matrícula ${matricula[1]}` : null,
     area_m2: area,
     declared_perimeter_m: declaredPerimeter,
-    computed_perimeter_m: computedPerimeter > 0 ? computedPerimeter : null,
+    computed_perimeter_m: computedPerimeter > 0 && !missingMeasures ? computedPerimeter : null,
     vertex_count: vertices.size,
     altitude_min_m: altitudeMin,
     altitude_max_m: altitudeMax,
