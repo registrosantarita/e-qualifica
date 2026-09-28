@@ -999,7 +999,7 @@ export function parseMemorial(text: string): ParsedParcel {
           if (s.azimuth_deg === null) s.azimuth_deg = g.azimuth;
           // Nunca substituir por distância calculada uma medida que consta no
           // documento mas cuja camada de texto está ilegível/incompatível.
-          if (s.distance_m === null && !/\b[\dOoDIlZzASsGTBbgq.,/]+\s*m\s+at[ée]\b/i.test(s.raw_text)) s.distance_m = g.distance;
+          if (s.distance_m === null && !structured.warnings?.some((w) => w.startsWith(`${s.from_vertex} → ${s.to_vertex}: distância`))) s.distance_m = g.distance;
         }
       }
     });
