@@ -339,7 +339,7 @@ export const runComparison = createServerFn({ method: "POST" })
       }
       const metrics = previous.metrics && typeof previous.metrics === "object" && !Array.isArray(previous.metrics)
         ? previous.metrics : {};
-      if ("figura" in metrics || "modo" in metrics && metrics.modo === "memorial_x_planta") {
+      if ("figura" in metrics || metrics["modo"] === "memorial_x_planta" || metrics["modo"] === "cotas_avulsas") {
         throw new Error("Esta conferência lote a lote deve ser refeita na opção Conferência de Loteamentos.");
       }
       const parcelIds = await Promise.all(
@@ -350,18 +350,20 @@ export const runComparison = createServerFn({ method: "POST" })
           return rows ?? [];
         }),
       );
-      const parcelAId = typeof metrics.parcel_a_id === "string" ? metrics.parcel_a_id : undefined;
-      const parcelBId = typeof metrics.parcel_b_id === "string" ? metrics.parcel_b_id : undefined;
-      if ((!parcelAId && parcelIds[0].length !== 1) ||
-          (!parcelBId && (previous.document_a_id === previous.document_b_id || parcelIds[1].length !== 1))) {
+      const parcelsA = parcelIds[0] ?? [];
+      const parcelsB = parcelIds[1] ?? [];
+      const parcelAId = typeof metrics["parcel_a_id"] === "string" ? metrics["parcel_a_id"] : undefined;
+      const parcelBId = typeof metrics["parcel_b_id"] === "string" ? metrics["parcel_b_id"] : undefined;
+      if ((!parcelAId && parcelsA.length !== 1) ||
+          (!parcelBId && (previous.document_a_id === previous.document_b_id || parcelsB.length !== 1))) {
         throw new Error("Não é possível identificar os polígonos usados nesta comparação antiga. Faça uma nova comparação selecionando-os.");
       }
       const parsed = CompareInput.safeParse({
         analysisId: previous.analysis_id,
         documentAId: previous.document_a_id,
         documentBId: previous.document_b_id,
-        parcelAId: parcelAId ?? parcelIds[0][0]?.id,
-        parcelBId: parcelBId ?? parcelIds[1][0]?.id,
+        parcelAId: parcelAId ?? parcelsA[0]?.id,
+        parcelBId: parcelBId ?? parcelsB[0]?.id,
         comparisonType: previous.comparison_type,
         tolerances: previous.tolerances,
       });
