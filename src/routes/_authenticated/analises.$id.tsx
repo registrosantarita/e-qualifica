@@ -411,6 +411,18 @@ function AnaliseDetalhe() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const reprocessarComparacao = useMutation({
+    mutationFn: (comparisonId: string) => comparar({ data: { comparisonId } }),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["comparisons", id] });
+      queryClient.invalidateQueries({ queryKey: ["findings-analise", id] });
+      queryClient.invalidateQueries({ queryKey: ["audit", id] });
+      toast.success("Comparação reprocessada. O resultado anterior foi preservado.");
+      navigate({ to: "/comparacoes/$id", params: { id: result.comparisonId } });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const executarComparacao = useMutation({
     mutationFn: async () => {
@@ -1592,6 +1604,15 @@ function AnaliseDetalhe() {
                           {c.summary}
                         </p>
                       </Link>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-1 shrink-0"
+                        disabled={reprocessarComparacao.isPending}
+                        onClick={() => reprocessarComparacao.mutate(c.id)}
+                      >
+                        {reprocessarComparacao.isPending && reprocessarComparacao.variables === c.id ? "Reprocessando..." : "Reprocessar"}
+                      </Button>
                       {admin.data?.admin && (
                         <Button
                           variant="ghost"

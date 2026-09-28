@@ -322,9 +322,53 @@ const CompareInput = z.object({
 
 export const runComparison = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => CompareInput.parse(input))
+  .inputValidator((input: unknown) =>
+    z.union([z.object({ comparisonId: z.string().uuid() }), CompareInput]).parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    let originalId: string | undefined;
+    if ("comparisonId" in data) {
+      const { data: previous, error } = await supabase
+        .from("comparisons")
+        .select("id, analysis_id, comparison_type, document_a_id, document_b_id, tolerances, metrics")
+        .eq("id", data.comparisonId)
+        .maybeSingle();
+      if (error || !previous?.document_a_id || !previous.document_b_id) {
+        throw new Error("Comparação não encontrada ou documentos indisponíveis.");
+      }
+      const metrics = previous.metrics && typeof previous.metrics === "object" && !Array.isArray(previous.metrics)
+        ? previous.metrics : {};
+      if ("figura" in metrics || "modo" in metrics && metrics.modo === "memorial_x_planta") {
+        throw new Error("Esta conferência lote a lote deve ser refeita na opção Conferência de Loteamentos.");
+      }
+      const parcelIds = await Promise.all(
+        [previous.document_a_id, previous.document_b_id].map(async (documentId) => {
+          const { data: rows, error: parcelError } = await supabase
+            .from("parcels").select("id").eq("document_id", documentId).order("created_at").limit(2);
+          if (parcelError) throw new Error(parcelError.message);
+          return rows ?? [];
+        }),
+      );
+      const parcelAId = typeof metrics.parcel_a_id === "string" ? metrics.parcel_a_id : undefined;
+      const parcelBId = typeof metrics.parcel_b_id === "string" ? metrics.parcel_b_id : undefined;
+      if ((!parcelAId && parcelIds[0].length !== 1) ||
+          (!parcelBId && (previous.document_a_id === previous.document_b_id || parcelIds[1].length !== 1))) {
+        throw new Error("Não é possível identificar os polígonos usados nesta comparação antiga. Faça uma nova comparação selecionando-os.");
+      }
+      const parsed = CompareInput.safeParse({
+        analysisId: previous.analysis_id,
+        documentAId: previous.document_a_id,
+        documentBId: previous.document_b_id,
+        parcelAId: parcelAId ?? parcelIds[0][0]?.id,
+        parcelBId: parcelBId ?? parcelIds[1][0]?.id,
+        comparisonType: previous.comparison_type,
+        tolerances: previous.tolerances,
+      });
+      if (!parsed.success) throw new Error("As tolerâncias anteriores não puderam ser recuperadas. Faça uma nova comparação.");
+      data = parsed.data;
+      originalId = previous.id;
+    }
     const tol: Tolerances = data.tolerances ?? DEFAULT_TOLERANCES;
 
     async function loadParcel(
@@ -451,7 +495,7 @@ export const runComparison = createServerFn({ method: "POST" })
         document_b_id: data.documentBId,
         tolerances: tol,
         summary: result.summary,
-        metrics: result.metrics as unknown as Json,
+        metrics: { ...result.metrics, parcel_a_id: a.parcelId, parcel_b_id: b.parcelId } as unknown as Json,
         created_by: userId,
       })
       .select("id")
@@ -459,7 +503,7 @@ export const runComparison = createServerFn({ method: "POST" })
     if (error || !comparison) throw new Error("Falha ao registrar a comparação.");
 
     if (result.findings.length > 0) {
-      await supabase.from("findings").insert(
+      const { error: findingsError } = await supabase.from("findings").insert(
         result.findings.map((f) => ({
           comparison_id: comparison.id,
           analysis_id: data.analysisId,
@@ -470,14 +514,15 @@ export const runComparison = createServerFn({ method: "POST" })
           evidence: f.evidence as unknown as Json,
         })),
       );
+      if (findingsError) throw new Error(findingsError.message);
     }
 
     await supabase.from("audit_logs").insert({
       actor_id: userId,
       entity_type: "comparison",
       entity_id: comparison.id,
-      action: "run",
-      metadata: { classificacao: result.classification, tolerancias: tol },
+      action: originalId ? "reprocess" : "run",
+      metadata: { classificacao: result.classification, tolerancias: tol, ...(originalId ? { comparacao_anterior: originalId } : {}) },
     });
 
     return { comparisonId: comparison.id, classification: result.classification };
