@@ -10,6 +10,6 @@
 <!-- LOVABLE:END -->
 
 - O acervo `norms`/`norm_chunks` é legível por qualquer identidade autenticada, mas não por visitantes; é uma biblioteca compartilhada entre usuários conectados.
-- A extração de PDFs preserva limites de página para retirar apenas cabeçalhos repetidos antes da análise; cabeçalhos intercalados quebram frases e trechos perimetrais.
+- A extração de PDFs preserva limites de página para retirar cabeçalhos e rodapés de assinatura repetidos antes da análise; textos intercalados quebram frases e trechos perimetrais.
 - No GeoConfronto, um arquivo original pode gerar documentos-filhos independentes por descrição perimétrica, ligados à fonte; apenas a fonte guarda o PDF para evitar uploads e OCR duplicados.
 - Exportações geométricas do GeoConfronto são feitas no navegador a partir dos vértices extraídos: KML/KMZ só com lon/lat válidas e DWG com E/N originais ou projeção WGS84 para UTM local, sem inventar coordenadas ausentes.
