@@ -1,4 +1,5 @@
 # Tarefas
+- [x] Corrigir rodapé de assinatura intercalado ao caminhamento 13→14 na prenotação 91.356 e testar os dois PDFs nativos.
 - [x] Reduzir os quadros das análises do GeoConfronto para aproximadamente um quarto da área, preservando seleção e ações.
 - [x] Permitir renomear análises do GeoConfronto no painel.
 - [x] Adicionar seleção individual e geral de análises no GeoConfronto e exclusão em lote restrita ao administrador.

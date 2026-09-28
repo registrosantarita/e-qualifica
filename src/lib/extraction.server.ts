@@ -5,7 +5,31 @@ export async function extractPdfText(bytes: ArrayBuffer): Promise<string> {
   // pdf.js "detacha" (invalida) o buffer recebido; sempre trabalhar numa cópia.
   const pdf = await getDocumentProxy(new Uint8Array(bytes.slice(0)));
   const { text } = await extractText(pdf, { mergePages: false });
-  return removeRepeatedPdfPageHeaders(Array.isArray(text) ? text : [text]).join("\n");
+  return removeRepeatedPdfPageHeaders(removeRepeatedPdfPageFooters(Array.isArray(text) ? text : [text])).join("\n");
+}
+
+/** Rodapés de assinatura podem ser anexados à última palavra do memorial antes da quebra de página. */
+export function removeRepeatedPdfPageFooters(pages: string[]): string[] {
+  if (pages.length < 2) return pages;
+  // Só retirar o bloco de validação quando for um rodapé repetido: uma menção
+  // isolada à assinatura no corpo de um contrato não deve ser descartada.
+  const marker = /Esse documento foi assinado por\s+[^\n]+\.?/i;
+  const footer = /Esse documento foi assinado por[^\n]*\nPara validar o documento e suas assinaturas acesse[^\n]*\n[^\n]+\s*$/i;
+  const matches = pages.map((page) => {
+    const tail = page.slice(-600);
+    const found = footer.exec(tail);
+    return found && marker.test(found[0]) ? { start: page.length - tail.length + found.index, text: found[0] } : null;
+  });
+  const counts = new Map<string, number>();
+  for (const match of matches) {
+    if (match) counts.set(match.text.trim(), (counts.get(match.text.trim()) ?? 0) + 1);
+  }
+  const repeated = [...counts].filter(([, count]) => count >= 2).map(([text]) => text);
+  if (!repeated.length) return pages;
+  return pages.map((page, index) => {
+    const match = matches[index];
+    return match && repeated.includes(match.text.trim()) ? page.slice(0, match.start).trimEnd() : page;
+  });
 }
 
 /** Remove cabeçalhos repetidos que, na junção de páginas, partem uma medida ou um vértice. */

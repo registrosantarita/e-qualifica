@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseMemorial } from "./memorial-parser.ts";
 import { parseParcelas } from "./multi-parcel.ts";
-import { extractPdfText, removeRepeatedPdfPageHeaders } from "./extraction.server.ts";
+import { extractPdfText, removeRepeatedPdfPageHeaders, removeRepeatedPdfPageFooters } from "./extraction.server.ts";
 import { readFileSync } from "node:fs";
 
 const exemplo = `A poligonal inicia no ponto 1, de coordenadas Latitude:-21°34'22,47460"S e Longitude:-47°30'11,01434"W, referidas ao Sistema Geocêntrico SIRGAS 2000, situado no Km 47+234,84m da LT; deste segue com azimute de 46º06'35'' e distância de 5,36m, confrontando com terras de SYLVAMO DO BRASIL LTDA até atingir o ponto 2, de coordenadas Latitude:-21°34'22,35574"S e Longitude:-47°30'10,87782"W;`;
@@ -39,6 +39,33 @@ test("cabeçalhos repetidos não interrompem a distância e o vértice entre pá
   const parcel = parseMemorial(text);
   assert.deepEqual(parcel.segments.map((s) => [s.from_vertex, s.to_vertex, s.distance_m]), [["1", "2", 126.89], ["2", "1", 6.84]]);
   assert.deepEqual(removeRepeatedPdfPageHeaders(["A\nPágina 1 de 2\ntexto", "B\nPágina 2 de 2\ntexto"]), ["A\nPágina 1 de 2\ntexto", "B\nPágina 2 de 2\ntexto"]);
+});
+
+test("rodapé de assinatura colado ao confrontante não suprime o trecho entre páginas", () => {
+  const assinatura = "Esse documento foi assinado por FULANO.\nPara validar o documento e suas assinaturas acesse https://exemplo.test/valida e informe o código ABC-\nXYZ";
+  const pages = [
+    `A poligonal inicia no ponto 13, de coordenadas Latitude:-21°33'54,07850\"S e Longitude:-47°30'49,99857\"W; deste segue com azimute de 307º35'23'' e distância de 69,18m, confrontando com terras de SYLVAMO DO${assinatura}`,
+    `BRASIL LTDA até atingir o ponto 14, de coordenadas Latitude:-21°33'52,67847\"S e Longitude:-47°30'51,87925\"W; deste segue com azimute de 307º42'16'' e distância de 158,50m, confrontando com terras de SYLVAMO DO${assinatura}`,
+    `BRASIL LTDA até atingir o ponto 15, de coordenadas Latitude:-21°33'49,462657\"S e Longitude:-47°30'56,180998\"W;`,
+  ];
+  const cleaned = removeRepeatedPdfPageFooters(pages);
+  assert.ok(!cleaned.join(' ').includes('Esse documento foi assinado'));
+  const parsed = parseMemorial(cleaned.join('\n'));
+  assert.deepEqual(parsed.segments.map((s) => [s.from_vertex, s.to_vertex, s.distance_m]), [['13', '14', 69.18], ['14', '15', 158.5]]);
+  assert.deepEqual(removeRepeatedPdfPageFooters([pages[0], 'Outro documento sem rodapé']), [pages[0], 'Outro documento sem rodapé']);
+});
+
+test("os PDFs da prenotação 91.356 preservam 13→14 na escritura e no instrumento", async () => {
+  const files = ['02._Escritura_Pública-2.PDF', '03._Instrumento_Particular-2.PDF'];
+  for (const name of files) {
+    let bytes;
+    try { bytes = readFileSync(`/mnt/user-uploads/${name}`); } catch { continue; }
+    const text = await extractPdfText(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    const parcels = parseParcelas(text, false);
+    assert.equal(parcels.length, 1, name);
+    assert.equal(parcels[0].segments.length, 17, name);
+    assert.deepEqual(parcels[0].segments.slice(12, 14).map((s) => [s.from_vertex, s.to_vertex, s.distance_m]), [['13', '14', 69.18], ['14', '15', 158.5]], name);
+  }
 });
 
 test("os dois PDFs enviados produzem o mesmo caminhamento completo", async () => {
