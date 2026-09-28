@@ -446,8 +446,8 @@ export function compareParcels(
           seq_a: pair.ia + 1,
           seq_b: pair.ib + 1,
           invertido: alignment.reversed,
-          a: sa,
-          b: sb,
+          a: tol.ignoreConfrontations ? { ...sa, confrontante: null } : sa,
+          b: tol.ignoreConfrontations ? { ...sb, confrontante: null } : sb,
           problems,
         },
       });

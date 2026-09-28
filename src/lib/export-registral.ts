@@ -256,6 +256,10 @@ export function exportarRelatorioPdf(
   nomeArquivo: string,
 ): void {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const toleranciaNumerica = (key: string) => {
+    const value = input.tolerancias[key];
+    return typeof value === "number" ? value : null;
+  };
   const M = 48;
   const W = doc.internal.pageSize.getWidth();
   let y = M;
@@ -312,13 +316,14 @@ export function exportarRelatorioPdf(
     startY: (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16,
     head: [["Tolerância", "Valor adotado"]],
     body: [
-      ["Área (percentual)", `${fmtNum(input.tolerancias["areaPct"] ?? null, 2)} %`],
-      ["Área (medida)", `${fmtNum(input.tolerancias["areaM2"] ?? null, 2)} m²`],
-      ["Perímetro (percentual)", `${fmtNum(input.tolerancias["perimeterPct"] ?? null, 2)} %`],
-      ["Perímetro (medida)", `${fmtNum(input.tolerancias["perimeterM"] ?? null, 3)} m`],
-      ["Distância", `${fmtNum(input.tolerancias["distanceM"] ?? null, 3)} m`],
-      ["Azimute", `${fmtNum(input.tolerancias["azimuthDeg"] ?? null, 4)} °`],
-      ["Altitude", `${fmtNum(input.tolerancias["altitudeM"] ?? null, 2)} m`],
+      ["Área (percentual)", `${fmtNum(toleranciaNumerica("areaPct"), 2)} %`],
+      ["Área (medida)", `${fmtNum(toleranciaNumerica("areaM2"), 2)} m²`],
+      ["Perímetro (percentual)", `${fmtNum(toleranciaNumerica("perimeterPct"), 2)} %`],
+      ["Perímetro (medida)", `${fmtNum(toleranciaNumerica("perimeterM"), 3)} m`],
+      ["Distância", `${fmtNum(toleranciaNumerica("distanceM"), 3)} m`],
+      ["Azimute", `${fmtNum(toleranciaNumerica("azimuthDeg"), 4)} °`],
+      ["Altitude", `${fmtNum(toleranciaNumerica("altitudeM"), 2)} m`],
+      ["Confrontações", input.tolerancias["ignoreConfrontations"] === true ? "Ignoradas" : "Conferidas"],
     ],
     theme: "grid",
     styles: { fontSize: 9, cellPadding: 5 },

@@ -249,6 +249,7 @@ function Relatorio() {
   const c = comparison.data;
   const cls = CLASSIFICACAO[c.classification ?? "inconclusive"]!;
    const tol = (c.tolerances ?? {}) as Record<string, number | boolean>;
+   const tolNumero = (key: string) => typeof tol[key] === "number" ? tol[key] as number : null;
   const metrics = (c.metrics ?? {}) as Record<string, unknown>;
   const counts = (metrics["counts"] ?? {}) as Record<string, number>;
   const trechos = lerTrechos(metrics);
@@ -370,11 +371,11 @@ function Relatorio() {
          )}
         <dl className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-5">
           {[
-            ["Área", `${fmtNum(tol["areaPct"] ?? null, 2)} %`],
-            ["Perímetro", `${fmtNum(tol["perimeterPct"] ?? null, 2)} %`],
-            ["Distância", `${fmtNum(tol["distanceM"] ?? null, 3)} m`],
-            ["Azimute", `${fmtNum(tol["azimuthDeg"] ?? null, 4)} °`],
-            ["Altitude", `${fmtNum(tol["altitudeM"] ?? null, 2)} m`],
+             ["Área", `${fmtNum(tolNumero("areaPct"), 2)} %`],
+             ["Perímetro", `${fmtNum(tolNumero("perimeterPct"), 2)} %`],
+             ["Distância", `${fmtNum(tolNumero("distanceM"), 3)} m`],
+             ["Azimute", `${fmtNum(tolNumero("azimuthDeg"), 4)} °`],
+             ["Altitude", `${fmtNum(tolNumero("altitudeM"), 2)} m`],
           ].map(([k, v]) => (
             <div key={k}>
               <dt className="eyebrow">{k}</dt>
