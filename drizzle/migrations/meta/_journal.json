@@ -22,6 +22,34 @@
       "when": 1790464046905,
       "tag": "0002_link_extracted_descriptions_to_source_document",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790704366325,
+      "tag": "0003_create_authorized_email_registry",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790704397194,
+      "tag": "0004_enforce_authorized_emails_across_data_and_signup",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790704488136,
+      "tag": "0005_assign_approved_role_on_signup",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790704553623,
+      "tag": "0006_restrict_authorization_rpc_to_logged_in_users",
+      "breakpoints": true
     }
   ]
 }
