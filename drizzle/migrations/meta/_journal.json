@@ -29,6 +29,13 @@
       "when": 1790704366325,
       "tag": "0003_create_authorized_email_registry",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790704397194,
+      "tag": "0004_enforce_authorized_emails_across_data_and_signup",
+      "breakpoints": true
     }
   ]
 }
