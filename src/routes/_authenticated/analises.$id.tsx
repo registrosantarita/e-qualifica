@@ -534,13 +534,8 @@ function AnaliseDetalhe() {
   const documentosVisiveis = (documents.data ?? []).filter(
     (d) => !(documents.data ?? []).some((filho) => filho.source_document_id === d.id),
   );
-  const exportacoesLiberadas = admin.data?.admin === true || (
-    (analysis.data?.status === "completed" || analysis.data?.status === "archived") &&
-    achadosAnalise.isSuccess &&
-    !(achadosAnalise.data ?? []).some(
-      (f) => ehDivergencia(f.severity) && lerDecisao(f).decisao === "pendente",
-    )
-  );
+  const exportacoesLiberadas = admin.data?.admin === true ||
+    analysis.data?.status === "completed" || analysis.data?.status === "archived";
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -567,12 +562,11 @@ function AnaliseDetalhe() {
             >
               {STATUS_ANALISE[analysis.data.status]}
             </Badge>
-            {exportacoesLiberadas && (
-              <RelatoriosAnalise
-                comparacoes={comparisons.data ?? []}
-                onExcluido={() => comparisons.refetch()}
-              />
-            )}
+            <RelatoriosAnalise
+              comparacoes={comparisons.data ?? []}
+              podeGerar={exportacoesLiberadas}
+              onExcluido={() => comparisons.refetch()}
+            />
           </div>
         )}
       </div>

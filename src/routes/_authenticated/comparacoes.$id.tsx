@@ -90,24 +90,7 @@ function Relatorio() {
   const analiseConcluida =
     analise.data?.status === "completed" || analise.data?.status === "archived";
 
-  const achadosAnalise = useQuery({
-    enabled: !!comparison.data?.analysis_id,
-    queryKey: ["findings-analise", comparison.data?.analysis_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("findings")
-        .select("severity, reviewed, reviewer_note")
-        .eq("analysis_id", comparison.data!.analysis_id!);
-      if (error) throw error;
-      return data;
-    },
-  });
-  const exportacoesLiberadas = admin.data?.admin === true || (
-    analiseConcluida && achadosAnalise.isSuccess &&
-    !(achadosAnalise.data ?? []).some(
-      (f) => ehDivergencia(f.severity) && lerDecisao(f).decisao === "pendente",
-    )
-  );
+  const exportacoesLiberadas = admin.data?.admin === true || analiseConcluida;
 
   const concluir = useMutation({
     mutationFn: async () => {
@@ -509,7 +492,7 @@ function Relatorio() {
                     {JSON.stringify(f.evidence, null, 2)}
                   </pre>
                 </details>
-                <ValidacaoAchado achado={f} onSalvo={() => { findings.refetch(); achadosAnalise.refetch(); }} />
+                <ValidacaoAchado achado={f} onSalvo={() => findings.refetch()} />
               </li>
             );
           })}
@@ -525,7 +508,7 @@ function Relatorio() {
           comparisonId={id}
           achados={divergentes}
           todos={ordenados}
-          onSalvo={() => { findings.refetch(); achadosAnalise.refetch(); }}
+          onSalvo={() => findings.refetch()}
         />
 
         {ordenados.length > 0 && (
@@ -565,7 +548,7 @@ function Relatorio() {
                   achados={compativeis}
                   todos={ordenados}
                   modo="oposicao"
-                  onSalvo={() => { findings.refetch(); achadosAnalise.refetch(); }}
+                  onSalvo={() => findings.refetch()}
                 />
               </>
             ) : (
