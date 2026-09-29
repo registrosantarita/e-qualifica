@@ -158,6 +158,27 @@ export type Database = {
         }
         Relationships: []
       }
+      authorized_emails: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
       comparisons: {
         Row: {
           analysis_id: string

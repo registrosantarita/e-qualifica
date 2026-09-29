@@ -22,6 +22,13 @@
       "when": 1790464046905,
       "tag": "0002_link_extracted_descriptions_to_source_document",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790704366325,
+      "tag": "0003_create_authorized_email_registry",
+      "breakpoints": true
     }
   ]
 }
