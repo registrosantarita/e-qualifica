@@ -43,6 +43,13 @@
       "when": 1790704488136,
       "tag": "0005_assign_approved_role_on_signup",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790704553623,
+      "tag": "0006_restrict_authorization_rpc_to_logged_in_users",
+      "breakpoints": true
     }
   ]
 }
