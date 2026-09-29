@@ -957,7 +957,7 @@ function AnaliseDetalhe() {
                         {exportacoesLiberadas && parcel && (parcel.segments ?? []).length > 0 && (
                           <>
                             <Button size="sm" onClick={gerarMatricula}>Gerar descrição para Matrícula</Button>
-                            {exportacoesLiberadas && (["kml", "kmz", "dwg"] as const).map((formato) => (
+                            {(["kml", "kmz", "dwg"] as const).map((formato) => (
                               <Button key={formato} variant="outline" size="sm" onClick={() => void exportarGeometria(formato)}>
                                 Exportar em {formato.toUpperCase()}
                               </Button>
