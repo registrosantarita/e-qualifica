@@ -138,7 +138,8 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    goBack();
+    const { data } = await supabase.auth.getUser();
+    if (data.user && await verifyAccess(data.user.id)) goBack();
   }
 
   async function handleApple() {
@@ -151,7 +152,8 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    goBack();
+    const { data } = await supabase.auth.getUser();
+    if (data.user && await verifyAccess(data.user.id)) goBack();
   }
 
 
@@ -201,6 +203,7 @@ function AuthPage() {
 
           <p className="eyebrow mt-6">Acesso à plataforma</p>
           <h2 className="mt-3 text-3xl">Entrar</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Acesso exclusivo para e-mails previamente autorizados.</p>
 
 
           {awaitingConfirm ? (
