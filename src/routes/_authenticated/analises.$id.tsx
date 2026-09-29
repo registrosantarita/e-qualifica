@@ -534,6 +534,13 @@ function AnaliseDetalhe() {
   const documentosVisiveis = (documents.data ?? []).filter(
     (d) => !(documents.data ?? []).some((filho) => filho.source_document_id === d.id),
   );
+  const exportacoesLiberadas = admin.data?.admin === true || (
+    (analysis.data?.status === "completed" || analysis.data?.status === "archived") &&
+    achadosAnalise.isSuccess &&
+    !(achadosAnalise.data ?? []).some(
+      (f) => ehDivergencia(f.severity) && lerDecisao(f).decisao === "pendente",
+    )
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -560,10 +567,12 @@ function AnaliseDetalhe() {
             >
               {STATUS_ANALISE[analysis.data.status]}
             </Badge>
-            <RelatoriosAnalise
-              comparacoes={comparisons.data ?? []}
-              onExcluido={() => comparisons.refetch()}
-            />
+            {exportacoesLiberadas && (
+              <RelatoriosAnalise
+                comparacoes={comparisons.data ?? []}
+                onExcluido={() => comparisons.refetch()}
+              />
+            )}
           </div>
         )}
       </div>
@@ -842,6 +851,7 @@ function AnaliseDetalhe() {
                   } : null;
                   const baseExportacao = (d.file_name ?? "descricao").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 80);
                   const exportarGeometria = async (formato: "kml" | "kmz" | "dwg") => {
+                    if (!exportacoesLiberadas) return;
                     const dados = dadosExportacao();
                     if (!dados) return;
                     try {
@@ -952,7 +962,7 @@ function AnaliseDetalhe() {
                         {parcel && (parcel.segments ?? []).length > 0 && (
                           <>
                             <Button size="sm" onClick={gerarMatricula}>Gerar descrição para Matrícula</Button>
-                            {(["kml", "kmz", "dwg"] as const).map((formato) => (
+                            {exportacoesLiberadas && (["kml", "kmz", "dwg"] as const).map((formato) => (
                               <Button key={formato} variant="outline" size="sm" onClick={() => void exportarGeometria(formato)}>
                                 Exportar em {formato.toUpperCase()}
                               </Button>
