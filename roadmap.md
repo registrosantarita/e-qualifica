@@ -1,4 +1,5 @@
 # Tarefas
+- [ ] Liberar relatórios e exportações geométricas no GeoConfronto somente após conclusão, exceto para administradores.
 - [x] Permitir reprocessar uma comparação GeoConfronto com os documentos, polígonos e tolerâncias originais, preservando o resultado anterior.
 - [x] Corrigir a leitura dos pontos da análise 91369, sinalizar medidas ambíguas e validar os dois memoriais enviados.
 - [ ] Ajustar checkbox de confrontações junto à Distância; manter ações junto às informações dos documentos, iniciar lista recolhida e oferecer controles gerais de expansão.
