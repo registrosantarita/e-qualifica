@@ -865,6 +865,7 @@ function AnaliseDetalhe() {
                     }
                   };
                   const gerarMatricula = async () => {
+                    if (!exportacoesLiberadas) return;
                     if (!parcel) return;
                     const base = (d.file_name ?? "descricao").replace(
                       /\.[^.]+$/,
@@ -953,7 +954,7 @@ function AnaliseDetalhe() {
                             Excluir documento
                           </Button>
                         )}
-                        {parcel && (parcel.segments ?? []).length > 0 && (
+                        {exportacoesLiberadas && parcel && (parcel.segments ?? []).length > 0 && (
                           <>
                             <Button size="sm" onClick={gerarMatricula}>Gerar descrição para Matrícula</Button>
                             {exportacoesLiberadas && (["kml", "kmz", "dwg"] as const).map((formato) => (
