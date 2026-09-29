@@ -129,6 +129,59 @@ export const removerPapel = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Manage the actual email allowlist, including people who have not signed up yet. */
+export const listarAutorizados = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await exigirAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.from("authorized_emails")
+      .select("email, full_name, role").order("full_name");
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const autorizarEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    email: z.string().trim().email().max(255).transform((value) => value.toLowerCase()),
+    fullName: z.string().trim().min(3).max(200),
+    role: z.enum(["admin", "operator"]),
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("authorized_emails").upsert({
+      email: data.email, full_name: data.fullName, role: data.role,
+    });
+    if (error) throw new Error(error.message);
+    const { data: profile } = await supabaseAdmin.from("profiles")
+      .select("id").ilike("email", data.email).maybeSingle();
+    if (profile) {
+      const { error: roleError } = await supabaseAdmin.from("user_roles").upsert({
+        user_id: profile.id, role: data.role,
+      }, { onConflict: "user_id,role" });
+      if (roleError) throw new Error(roleError.message);
+    }
+    return { ok: true };
+  });
+
+export const revogarEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ email: z.string().trim().email() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: ownProfile } = await supabaseAdmin.from("profiles")
+      .select("email").eq("id", context.userId).single();
+    if (ownProfile?.email.toLowerCase() === data.email.toLowerCase())
+      throw new Error("Não é possível revogar o próprio acesso.");
+    const { error } = await supabaseAdmin.from("authorized_emails")
+      .delete().eq("email", data.email.toLowerCase());
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 /** Exclusão de uma análise inteira (documentos, arquivos e comparações). Somente admin. */
 export const excluirAnalise = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
