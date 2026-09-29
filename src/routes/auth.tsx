@@ -65,11 +65,19 @@ function AuthPage() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) goBack();
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session && await verifyAccess(data.session.user.id)) goBack();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
+
+  async function verifyAccess(userId: string): Promise<boolean> {
+    const { data, error } = await supabase.rpc("is_authorized_user", { _user_id: userId });
+    if (!error && data === true) return true;
+    await supabase.auth.signOut();
+    toast.error("Este e-mail não está autorizado a acessar o sistema. Contate um administrador.");
+    return false;
+  }
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
@@ -79,13 +87,13 @@ function AuthPage() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword(parsed.data);
+    const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
     setLoading(false);
     if (error) {
       toast.error("Não foi possível entrar: credenciais inválidas.");
       return;
     }
-    goBack();
+    if (data.user && await verifyAccess(data.user.id)) goBack();
   }
 
   async function handleSignUp(e: React.FormEvent) {
@@ -117,7 +125,7 @@ function AuthPage() {
       toast.success("Cadastro criado. Confirme o e-mail para acessar.");
       return;
     }
-    goBack();
+    if (data.user && await verifyAccess(data.user.id)) goBack();
   }
 
   async function handleGoogle() {
