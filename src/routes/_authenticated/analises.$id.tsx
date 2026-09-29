@@ -534,6 +534,8 @@ function AnaliseDetalhe() {
   const documentosVisiveis = (documents.data ?? []).filter(
     (d) => !(documents.data ?? []).some((filho) => filho.source_document_id === d.id),
   );
+  const exportacoesLiberadas = admin.data?.admin === true ||
+    analysis.data?.status === "completed" || analysis.data?.status === "archived";
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -562,6 +564,7 @@ function AnaliseDetalhe() {
             </Badge>
             <RelatoriosAnalise
               comparacoes={comparisons.data ?? []}
+              podeGerar={exportacoesLiberadas}
               onExcluido={() => comparisons.refetch()}
             />
           </div>
@@ -842,6 +845,7 @@ function AnaliseDetalhe() {
                   } : null;
                   const baseExportacao = (d.file_name ?? "descricao").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 80);
                   const exportarGeometria = async (formato: "kml" | "kmz" | "dwg") => {
+                    if (!exportacoesLiberadas) return;
                     const dados = dadosExportacao();
                     if (!dados) return;
                     try {
@@ -861,6 +865,7 @@ function AnaliseDetalhe() {
                     }
                   };
                   const gerarMatricula = async () => {
+                    if (!exportacoesLiberadas) return;
                     if (!parcel) return;
                     const base = (d.file_name ?? "descricao").replace(
                       /\.[^.]+$/,
@@ -949,7 +954,7 @@ function AnaliseDetalhe() {
                             Excluir documento
                           </Button>
                         )}
-                        {parcel && (parcel.segments ?? []).length > 0 && (
+                        {exportacoesLiberadas && parcel && (parcel.segments ?? []).length > 0 && (
                           <>
                             <Button size="sm" onClick={gerarMatricula}>Gerar descrição para Matrícula</Button>
                             {(["kml", "kmz", "dwg"] as const).map((formato) => (

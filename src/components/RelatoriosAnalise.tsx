@@ -1,6 +1,6 @@
 /**
  * Painel "Relatórios": permite gerar o PDF de qualquer comparação da análise
- * a qualquer momento, inclusive depois de a análise ter sido concluída.
+ * depois da conclusão, ou a qualquer momento para administradores.
  */
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -42,9 +42,11 @@ type ComparacaoResumo = {
 
 export function RelatoriosAnalise({
   comparacoes,
+  podeGerar,
   onExcluido,
 }: {
   comparacoes: ComparacaoResumo[];
+  podeGerar: boolean;
   onExcluido?: () => void;
 }) {
   const [aberto, setAberto] = useState(false);
@@ -88,6 +90,7 @@ export function RelatoriosAnalise({
 
 
   async function gerar(comparacaoId: string) {
+    if (!podeGerar) return;
     setGerando(comparacaoId);
     try {
       const { data: c, error } = await supabase
@@ -164,16 +167,16 @@ export function RelatoriosAnalise({
     <Dialog open={aberto} onOpenChange={setAberto}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          Relatórios
+          {podeGerar ? "Relatórios" : "Gerenciar relatórios"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Relatórios das comparações</DialogTitle>
           <DialogDescription>
-            Gere o PDF de qualquer comparação desta análise a qualquer tempo,
-            inclusive após o encerramento. O conteúdo reflete as validações
-            humanas registradas.
+            {podeGerar
+              ? "Gere PDFs das comparações. O conteúdo reflete as validações humanas registradas."
+              : "Para gerar PDFs, conclua a análise após conferir as inconsistências. Administradores podem gerar antes da conclusão."}
           </DialogDescription>
         </DialogHeader>
 
@@ -262,13 +265,11 @@ export function RelatoriosAnalise({
                     </p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      disabled={gerando === c.id}
-                      onClick={() => gerar(c.id)}
-                    >
-                      {gerando === c.id ? "Gerando..." : "Baixar PDF"}
-                    </Button>
+                    {podeGerar && (
+                      <Button size="sm" disabled={gerando === c.id} onClick={() => gerar(c.id)}>
+                        {gerando === c.id ? "Gerando..." : "Baixar PDF"}
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" asChild>
                       <Link
                         to="/comparacoes/$id"

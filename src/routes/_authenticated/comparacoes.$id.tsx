@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +20,7 @@ import { getVertices, type VertexCoordRow } from "@/lib/export-registral";
 import { ValidacaoAchado } from "@/components/ValidacaoAchado";
 import { ValidacoesEmLote } from "@/components/ValidacoesEmLote";
 import { DECISAO_LABEL, ehDivergencia, lerDecisao } from "@/lib/finding-review";
+import { souAdmin } from "@/lib/admin.functions";
 
 
 
@@ -50,6 +52,12 @@ const ORDEM: string[] = ["critical", "moderate", "inconclusive", "informative"];
 function Relatorio() {
   const { id } = Route.useParams();
   const [mostrarOposicoes, setMostrarOposicoes] = useState(false);
+  const souAdminFn = useServerFn(souAdmin);
+  const admin = useQuery({
+    queryKey: ["sou-admin"],
+    queryFn: () => souAdminFn({}),
+    staleTime: 5 * 60 * 1000,
+  });
 
 
   const comparison = useQuery({
@@ -81,6 +89,8 @@ function Relatorio() {
 
   const analiseConcluida =
     analise.data?.status === "completed" || analise.data?.status === "archived";
+
+  const exportacoesLiberadas = admin.data?.admin === true || analiseConcluida;
 
   const concluir = useMutation({
     mutationFn: async () => {
@@ -280,7 +290,8 @@ function Relatorio() {
   const compativeis = ordenados.filter((f) => !ehDivergencia(f.severity));
 
 
-  const baixarPdf = () =>
+  const baixarPdf = () => {
+    if (!exportacoesLiberadas) return;
     exportarRelatorioPdf(
       {
         titulo: `${nomeDoc(c.document_a_id)} × ${nomeDoc(c.document_b_id)}`,
@@ -311,6 +322,7 @@ function Relatorio() {
       },
       `relatorio-conferencia-${c.id.slice(0, 8)}.pdf`,
     );
+  };
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10 print:py-0">
@@ -323,12 +335,12 @@ function Relatorio() {
           ← Voltar à análise
         </Link>
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => baixarPdf()}>
-            Baixar relatório (PDF)
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            Imprimir
-          </Button>
+          {exportacoesLiberadas && (
+            <>
+              <Button size="sm" onClick={baixarPdf}>Baixar relatório (PDF)</Button>
+              <Button variant="outline" size="sm" onClick={() => window.print()}>Imprimir</Button>
+            </>
+          )}
         </div>
 
       </div>
@@ -562,12 +574,12 @@ function Relatorio() {
       </section>
 
       <div className="mt-10 flex flex-wrap items-center gap-2 print:hidden">
-        <Button size="sm" onClick={() => baixarPdf()}>
-          Baixar relatório (PDF)
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => window.print()}>
-          Imprimir
-        </Button>
+        {exportacoesLiberadas && (
+          <>
+            <Button size="sm" onClick={baixarPdf}>Baixar relatório (PDF)</Button>
+            <Button variant="outline" size="sm" onClick={() => window.print()}>Imprimir</Button>
+          </>
+        )}
         <Link
           to="/analises/$id"
           params={{ id: c.analysis_id }}
