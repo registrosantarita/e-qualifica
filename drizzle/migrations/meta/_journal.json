@@ -36,6 +36,13 @@
       "when": 1790704397194,
       "tag": "0004_enforce_authorized_emails_across_data_and_signup",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790704488136,
+      "tag": "0005_assign_approved_role_on_signup",
+      "breakpoints": true
     }
   ]
 }
