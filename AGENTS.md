@@ -16,3 +16,4 @@
 - A opção “Ignorar confrontações” fica registrada nas tolerâncias de cada comparação GeoConfronto; o motor desconsidera os nomes e o PDF omite a tabela de confrontações, preservando as medidas e o histórico de cada resultado.
 - No GeoConfronto, a extração de caminhamentos verifica saltos de códigos e medidas contra coordenadas e perímetro declarado; valores duvidosos permanecem pendentes de conferência, pois inventar medidas propaga erros nas comparações.
 - O reprocessamento de uma comparação GeoConfronto cria um novo resultado com os documentos, polígonos e tolerâncias anteriores; mantém o resultado original e registra a ligação na auditoria para preservar revisões humanas.
+- O retorno após autenticação aceita apenas caminhos locais sem barras invertidas ou caracteres de controle e confirma a origem antes da navegação, para impedir redirecionamentos externos.
