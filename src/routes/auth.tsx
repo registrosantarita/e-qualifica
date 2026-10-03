@@ -39,8 +39,16 @@ const credentials = z.object({
 });
 
 function safeNext(value: unknown): string | null {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return null;
-  return value;
+  if (
+    typeof value !== "string" ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    /[\\\u0000-\u001f\u007f]/.test(value)
+  ) return null;
+  // Only accept paths that the browser resolves within this site's origin.
+  const origin = "https://local.invalid";
+  const destination = new URL(value, origin);
+  return destination.origin === origin ? value : null;
 }
 
 function AuthPage() {
@@ -58,8 +66,11 @@ function AuthPage() {
 
   const goBack = () => {
     if (next) {
-      window.location.href = next;
-      return;
+      const destination = new URL(next, window.location.origin);
+      if (destination.origin === window.location.origin) {
+        window.location.assign(destination.href);
+        return;
+      }
     }
     navigate({ to: "/painel", replace: true });
   };
