@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
     <main className="mx-auto max-w-3xl px-6 py-16 text-center">
       <p className="eyebrow">Acesso</p>
       <h1 className="mt-3 text-2xl text-foreground">Administração indisponível</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+      <p className="mt-2 text-sm text-muted-foreground">{error instanceof Error ? error.message : "Não foi possível carregar a administração."}</p>
     </main>
   ),
 });

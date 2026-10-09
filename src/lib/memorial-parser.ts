@@ -905,6 +905,13 @@ function parseProseSegments(flat: string): StructuredParse | null {
   PROSE_SEG_RE.lastIndex = 0;
   for (const m of flat.matchAll(PROSE_SEG_RE)) {
     const [, azRawBruto, distRaw, to, lonRaw, latRaw, altRaw] = m;
+    // Use the last explicitly written vertex, not the last successfully parsed
+    // destination: an unreadable leg must not shift every subsequent origin.
+    const origin = [...flat.slice(0, m.index).matchAll(/(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\b/gi)].at(-1)?.[1];
+    if (origin && origin.toUpperCase() !== prevName.toUpperCase()) {
+      prevName = origin;
+      prevAlt = coords.get(origin.toUpperCase())?.alt ?? null;
+    }
     const grau = corrigirGrauOcr(azRawBruto!);
     if (grau.corrigido) ocrFixes.push(grau.corrigido);
     const azRaw = grau.texto;
@@ -998,6 +1005,8 @@ export function parseMemorial(text: string): ParsedParcel {
       if (!prev) return;
       coordMap.set(key, {
         name: key,
+        lon_raw: prev.lon_raw ?? v.lon_raw,
+        lat_raw: prev.lat_raw ?? v.lat_raw,
         lon: prev.lon ?? v.lon,
         lat: prev.lat ?? v.lat,
         alt: prev.alt ?? v.alt,
