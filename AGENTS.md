@@ -18,3 +18,5 @@
 - O reprocessamento de uma comparação GeoConfronto cria um novo resultado com os documentos, polígonos e tolerâncias anteriores; mantém o resultado original e registra a ligação na auditoria para preservar revisões humanas.
 - O retorno após autenticação aceita apenas caminhos locais sem barras invertidas ou caracteres de controle e confirma a origem antes da navegação, para impedir redirecionamentos externos.
 - GeoConfronto stores original geographic-coordinate tokens alongside numeric values in vertex extraction JSON and uses them in display/export; this preserves source precision and trailing zeros without float reconstruction.
+- GeoConfronto checks prose text-layer completeness before accepting it and uses focused OCR when walking measures or coordinates are unreadable; other modules keep their own extraction policy.
+- Prose walking extraction accepts abbreviated coordinate labels, hemisphere suffixes and optional "de" before distances, so native and scanned descriptions share the same segment parser without copying values from a reference document.

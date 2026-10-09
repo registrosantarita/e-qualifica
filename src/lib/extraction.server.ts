@@ -108,6 +108,7 @@ export async function extractSpreadsheetText(bytes: ArrayBuffer): Promise<string
 export async function extractTextFromFile(
   bytes: ArrayBuffer,
   extension: string,
+  options: { geoconfronto?: boolean } = {},
 ): Promise<{
   text: string;
   note?: string;
@@ -116,9 +117,10 @@ export async function extractTextFromFile(
   const ext = extension.toLowerCase().replace(".", "");
   if (ext === "pdf") {
     const text = await extractPdfText(bytes);
-    if (text.trim().length < 40) {
+    const { needsGeoconfrontoOcr } = await import("./geoconfronto-text-quality");
+    if (text.trim().length < 40 || (options.geoconfronto && needsGeoconfrontoOcr(text))) {
       const { ocrDocument } = await import("./ocr.server");
-      const ocr = await ocrDocument(bytes.slice(0), "pdf");
+      const ocr = await ocrDocument(bytes.slice(0), "pdf", "documento", options);
       if (ocr.text.trim()) return ocr;
       return {
         text,
