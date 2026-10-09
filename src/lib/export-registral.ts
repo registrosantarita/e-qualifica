@@ -15,6 +15,8 @@ export type VertexCoordRow = {
   name: string;
   lon: number | null;
   lat: number | null;
+  lon_raw?: string | null;
+  lat_raw?: string | null;
   alt: number | null;
   north: number | null;
   east: number | null;
@@ -108,8 +110,8 @@ export function buildDescricaoSheets(parcel: ParcelExport): {
       const v = idx.get(vname(s.from_vertex));
       perimetro.push([
         vname(s.from_vertex),
-        v?.lon === null || v?.lon === undefined ? "" : coordToDms(v.lon, "lon"),
-        v?.lat === null || v?.lat === undefined ? "" : coordToDms(v.lat, "lat"),
+        v?.lon === null || v?.lon === undefined ? "" : coordToDms(v.lon, "lon", v.lon_raw),
+        v?.lat === null || v?.lat === undefined ? "" : coordToDms(v.lat, "lat", v.lat_raw),
         altitudeDe(s, v),
         vname(s.to_vertex),
         grau(s.azimuth_deg),

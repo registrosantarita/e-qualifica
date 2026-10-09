@@ -125,8 +125,8 @@ function buildParcel(
     segments,
     vertices: ring.map((p, i) => ({
       name: vertexName(i),
-      lon: Number(p.lon.toFixed(8)),
-      lat: Number(p.lat.toFixed(8)),
+      lon: p.lon,
+      lat: p.lat,
       alt: p.alt ?? null,
       north: null,
       east: null,

@@ -17,3 +17,4 @@
 - No GeoConfronto, a extração de caminhamentos verifica saltos de códigos e medidas contra coordenadas e perímetro declarado; valores duvidosos permanecem pendentes de conferência, pois inventar medidas propaga erros nas comparações.
 - O reprocessamento de uma comparação GeoConfronto cria um novo resultado com os documentos, polígonos e tolerâncias anteriores; mantém o resultado original e registra a ligação na auditoria para preservar revisões humanas.
 - O retorno após autenticação aceita apenas caminhos locais sem barras invertidas ou caracteres de controle e confirma a origem antes da navegação, para impedir redirecionamentos externos.
+- GeoConfronto stores original geographic-coordinate tokens alongside numeric values in vertex extraction JSON and uses them in display/export; this preserves source precision and trailing zeros without float reconstruction.

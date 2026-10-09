@@ -1,4 +1,5 @@
 # Tarefas
+- [x] Preservar todas as casas decimais das coordenadas do GeoConfronto na leitura, apresentação e exportação; regressões passaram, inspeção de análise autenticada depende de login na prévia.
 - [x] Liberar relatórios e exportações geométricas no GeoConfronto somente após conclusão, exceto para administradores.
 - [x] Permitir reprocessar uma comparação GeoConfronto com os documentos, polígonos e tolerâncias originais, preservando o resultado anterior.
 - [x] Corrigir a leitura dos pontos da análise 91369, sinalizar medidas ambíguas e validar os dois memoriais enviados.

@@ -1104,10 +1104,10 @@ function AnaliseDetalhe() {
                                           {temGeo && (
                                             <>
                                               <td className="numeric py-2 pr-3">
-                                                {coordToDms(v?.lon ?? null, "lon")}
+                                                {coordToDms(v?.lon ?? null, "lon", v?.lon_raw)}
                                               </td>
                                               <td className="numeric py-2 pr-3">
-                                                {coordToDms(v?.lat ?? null, "lat")}
+                                                {coordToDms(v?.lat ?? null, "lat", v?.lat_raw)}
                                               </td>
                                             </>
                                           )}
