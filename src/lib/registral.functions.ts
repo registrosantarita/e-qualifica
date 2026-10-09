@@ -49,6 +49,7 @@ export const processDocument = createServerFn({ method: "POST" })
       const result = await extractTextFromFile(
         await file.arrayBuffer(),
         doc.file_extension ?? "",
+        { geoconfronto: true },
       );
       text = result.text;
       note = result.note;

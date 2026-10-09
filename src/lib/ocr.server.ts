@@ -82,6 +82,7 @@ export async function ocrDocument(
   bytes: ArrayBuffer,
   extension: string,
   fileName = "documento",
+  options: { geoconfronto?: boolean } = {},
 ): Promise<OcrResult> {
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) {
@@ -90,16 +91,17 @@ export async function ocrDocument(
 
   const ext = extension.toLowerCase().replace(".", "");
   const isImage = ext in IMAGE_MIME;
-  const mime = isImage ? IMAGE_MIME[ext]! : "application/pdf";
+  const mime = IMAGE_MIME[ext] ?? "application/pdf";
   const data = `data:${mime};base64,${toBase64(bytes)}`;
+  const prompt = options.geoconfronto ? `${PROMPT}\n\nPara este memorial: transcreva o corpo impresso de TODAS as páginas em ordem, incluindo tabelas e todas as medidas. Não intercale assinaturas manuscritas, rubricas, carimbos de autenticação, números de página ou páginas contendo somente esses elementos no corpo da descrição. Continue frases e medidas interrompidas pela virada de página. Preserve Long/Lat, hemisférios W/S, altitude e códigos completos. Nunca complete valores a partir de outro documento ou pelo contexto. Leia cada dígito da imagem, não reutilize a camada OCR do PDF. Não omita o último segmento de fechamento. Valores ilegíveis devem permanecer [ilegível].` : PROMPT;
 
   const content = isImage
     ? [
-        { type: "text", text: PROMPT },
+        { type: "text", text: prompt },
         { type: "image_url", image_url: { url: data } },
       ]
     : [
-        { type: "text", text: PROMPT },
+        { type: "text", text: prompt },
         { type: "file", file: { filename: `${fileName}.pdf`, file_data: data } },
       ];
 
@@ -136,7 +138,7 @@ export async function ocrDocument(
   }
 
   const json = (await response.json()) as {
-    choices?: { message?: { content?: string } }[];
+    choices?: { message?: { content?: string }; finish_reason?: string }[];
     model?: string;
     usage?: {
       prompt_tokens?: number;
@@ -145,14 +147,17 @@ export async function ocrDocument(
     };
   };
   const text = normalizarOcr(json.choices?.[0]?.message?.content ?? "");
-  const prompt = json.usage?.prompt_tokens ?? 0;
+  const promptTokens = json.usage?.prompt_tokens ?? 0;
   const completion = json.usage?.completion_tokens ?? 0;
   const usage: OcrUsage = {
     model: json.model ?? MODEL,
-    promptTokens: prompt,
+    promptTokens,
     completionTokens: completion,
-    totalTokens: json.usage?.total_tokens ?? prompt + completion,
+    totalTokens: json.usage?.total_tokens ?? promptTokens + completion,
   };
+  if (json.choices?.[0]?.finish_reason === "length") {
+    return { text: "", usage, note: "A transcrição foi interrompida antes do fim do PDF. Divida o arquivo em partes e reenvie; nenhuma leitura parcial foi aceita." };
+  }
   if (!text.trim()) {
     return { text: "", note: "O OCR não identificou texto legível neste documento.", usage };
   }

@@ -392,6 +392,7 @@ type StructuredParse = {
 };
 
 const COORD_DMS = String.raw`-?\d{1,3}\s*[°ºo]\s*\d{1,2}\s*[${APOS}]\s*[\d.,]+\s*[${SEC}]?`;
+const PROSE_COORD = String.raw`${COORD_DMS}\s*[NSEWO]?`;
 
 /** Memorial SIGEF/INCRA em tabela: código, long, lat, altitude, vante, azimute, distância. */
 const SIGEF_ROW_RE = new RegExp(
@@ -762,7 +763,7 @@ const SEP = String.raw`\s*(?:,|;|\be\b)?\s*`;
  */
 const DEG_OCR = String.raw`[°º\u00BA\u02DA\u00B0oO0q9*]`;
 const PROSE_SEG_RE = new RegExp(
-  String.raw`(\d{1,3}\s*${DEG_OCR}\s*\d{1,2}(?:\s*[${APOS}](?:\s*[\d.,]+\s*[${SEC}]?)?)?)\s*(?:e|,)\s*(${OCR_DIGIT_TOKEN})\s*(?:m|metros)\s*at[ée]\s+(?:o\s+)?(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\s*,?\s*(?:\(\s*Longitude\s*:?\s*(${COORD_DMS})${SEP}Latitude\s*:?\s*(${COORD_DMS})(?:${SEP}Altitude\s*:?\s*(-?[\d.,]+))?)?`,
+  String.raw`(\d{1,3}\s*${DEG_OCR}\s*\d{1,2}(?:\s*[${APOS}](?:\s*[\d.,]+\s*[${SEC}]?)?)?)\s*(?:e|,)\s*(?:de\s+)?(${OCR_DIGIT_TOKEN})\s*(?:m|metros)\s*at[ée]\s+(?:o\s+)?(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\s*,?\s*(?:(?:de\s+coordenadas\s*)?\(?\s*Long(?:itude)?\s*:?\s*(${PROSE_COORD})${SEP}Lat(?:itude)?\s*:?\s*(${PROSE_COORD})(?:${SEP}Altitude\s*:?\s*(-?[\d.,]+))?)?`,
   "gi",
 );
 
@@ -774,10 +775,10 @@ function corrigirGrauOcr(raw: string): { texto: string; corrigido: string | null
 }
 
 const PROSE_START_RE = new RegExp(
-  String.raw`(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\s*,?\s*(?:de\s+coordenadas\s*)?\(\s*Longitude\s*:?\s*(${COORD_DMS})${SEP}Latitude\s*:?\s*(${COORD_DMS})(?:${SEP}Altitude\s*:?\s*(-?[\d.,]+))?`,
+  String.raw`(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\s*,?\s*(?:de\s+coordenadas\s*)?\(?\s*Long(?:itude)?\s*:?\s*(${PROSE_COORD})${SEP}Lat(?:itude)?\s*:?\s*(${PROSE_COORD})(?:${SEP}Altitude\s*:?\s*(-?[\d.,]+))?`,
   "i",
 );
-const PROSE_CONFRONT_RE = /confront(?:ando|a|ante|antes|ação)?\s*(?:-se)?\s*(?:com|:)\s*([^:;]{2,140}?)(?:,\s*com\s+os\s+seguintes|;|\.|:)/gi;
+const PROSE_CONFRONT_RE = /(?:confront(?:ando|a|ante|antes|ação)?\s*(?:-se)?\s*(?:com|:)\s*|segue\s+pela\s+faixa\s+de\s+dom[ií]nio\s+da\s+)([^:;]{2,240}?)(?=,\s*(?:matr[ií]cula|com\s+(?:os?\s+)?seguinte|com\s+largura)|;|:)/gi;
 
 /** Repara apenas a grafia do azimute quando o contexto do caminhamento é inequívoco.
  * Valores de distância sem separador não são reconstruídos por adivinhação. */
@@ -904,6 +905,13 @@ function parseProseSegments(flat: string): StructuredParse | null {
   PROSE_SEG_RE.lastIndex = 0;
   for (const m of flat.matchAll(PROSE_SEG_RE)) {
     const [, azRawBruto, distRaw, to, lonRaw, latRaw, altRaw] = m;
+    // Use the last explicitly written vertex, not the last successfully parsed
+    // destination: an unreadable leg must not shift every subsequent origin.
+    const origin = [...flat.slice(0, m.index).matchAll(/(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\b/gi)].at(-1)?.[1];
+    if (origin && origin.toUpperCase() !== prevName.toUpperCase()) {
+      prevName = origin;
+      prevAlt = coords.get(origin.toUpperCase())?.alt ?? null;
+    }
     const grau = corrigirGrauOcr(azRawBruto!);
     if (grau.corrigido) ocrFixes.push(grau.corrigido);
     const azRaw = grau.texto;
@@ -997,6 +1005,8 @@ export function parseMemorial(text: string): ParsedParcel {
       if (!prev) return;
       coordMap.set(key, {
         name: key,
+        lon_raw: prev.lon_raw ?? v.lon_raw ?? null,
+        lat_raw: prev.lat_raw ?? v.lat_raw ?? null,
         lon: prev.lon ?? v.lon,
         lat: prev.lat ?? v.lat,
         alt: prev.alt ?? v.alt,
