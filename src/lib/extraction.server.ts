@@ -123,7 +123,8 @@ export async function extractTextFromFile(
       const ocr = await ocrDocument(bytes.slice(0), "pdf", "documento", options);
       if (ocr.text.trim()) return ocr;
       return {
-        text,
+        // Do not silently accept the same unreadable layer after OCR fails.
+        text: "",
         ...(ocr.usage ? { usage: ocr.usage } : {}),
         note:
           ocr.note ??

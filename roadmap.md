@@ -1,5 +1,5 @@
 # Tarefas
-- [ ] Corrigir leitura do memorial digitalizado da Chácara Pedacinho do Céu e conferir medidas contra o SIGEF.
+- [x] Corrigir leitura do memorial digitalizado da Chácara Pedacinho do Céu e conferir medidas contra o SIGEF: 16 trechos recuperados na leitura real e 19 testes aprovados; altitude FAF-M-1856 difere nos originais (714,050 / 714,5 m).
 - [x] Preservar todas as casas decimais das coordenadas do GeoConfronto na leitura, apresentação e exportação; regressões passaram, inspeção de análise autenticada depende de login na prévia.
 - [x] Liberar relatórios e exportações geométricas no GeoConfronto somente após conclusão, exceto para administradores.
 - [x] Permitir reprocessar uma comparação GeoConfronto com os documentos, polígonos e tolerâncias originais, preservando o resultado anterior.
