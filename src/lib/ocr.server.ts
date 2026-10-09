@@ -147,13 +147,13 @@ export async function ocrDocument(
     };
   };
   const text = normalizarOcr(json.choices?.[0]?.message?.content ?? "");
-  const prompt = json.usage?.prompt_tokens ?? 0;
+  const promptTokens = json.usage?.prompt_tokens ?? 0;
   const completion = json.usage?.completion_tokens ?? 0;
   const usage: OcrUsage = {
     model: json.model ?? MODEL,
-    promptTokens: prompt,
+    promptTokens,
     completionTokens: completion,
-    totalTokens: json.usage?.total_tokens ?? prompt + completion,
+    totalTokens: json.usage?.total_tokens ?? promptTokens + completion,
   };
   if (json.choices?.[0]?.finish_reason === "length") {
     return { text: "", usage, note: "A transcrição foi interrompida antes do fim do PDF. Divida o arquivo em partes e reenvie; nenhuma leitura parcial foi aceita." };
