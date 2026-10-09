@@ -217,8 +217,8 @@ export function TrechosConsolidados({ docA, comparados, ignorarConfrontacoes = f
                         <td className="numeric py-2 px-2">
                           <Pilha
                             itens={pilha(
-                              (t) => coordToDms(coordA(t)?.lon ?? null, "lon"),
-                              (d, t) => coordToDms(coordB(d, t)?.lon ?? null, "lon"),
+                              (t) => coordToDms(coordA(t)?.lon ?? null, "lon", coordA(t)?.lon_raw),
+                              (d, t) => coordToDms(coordB(d, t)?.lon ?? null, "lon", coordB(d, t)?.lon_raw),
                               s,
                             )}
                           />
@@ -226,8 +226,8 @@ export function TrechosConsolidados({ docA, comparados, ignorarConfrontacoes = f
                         <td className="numeric py-2 px-2">
                           <Pilha
                             itens={pilha(
-                              (t) => coordToDms(coordA(t)?.lat ?? null, "lat"),
-                              (d, t) => coordToDms(coordB(d, t)?.lat ?? null, "lat"),
+                              (t) => coordToDms(coordA(t)?.lat ?? null, "lat", coordA(t)?.lat_raw),
+                              (d, t) => coordToDms(coordB(d, t)?.lat ?? null, "lat", coordB(d, t)?.lat_raw),
                               s,
                             )}
                           />

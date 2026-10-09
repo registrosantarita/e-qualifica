@@ -148,7 +148,10 @@ export function degToDms(value: number | string | null): string {
 export function coordToDms(
   value: number | string | null | undefined,
   eixo: "lat" | "lon",
+  original?: string | null,
 ): string {
+  // A fonte literal é autoritativa; não reconstruir segundos a partir de floats.
+  if (original?.trim()) return original.trim().replace(/(?<=\d)\.(?=\d)/g, ",");
   if (value === null || value === undefined || value === "") return "—";
   const n = typeof value === "string" ? Number(value) : value;
   if (!Number.isFinite(n)) return "—";
@@ -158,14 +161,12 @@ export function coordToDms(
   // Menor número de casas de segundo que reproduz o valor informado.
   let casas = 6;
   for (let c = 0; c <= 6; c++) {
-    if (Math.abs(s - Number(s.toFixed(c))) < 5e-4) {
+    if (Math.abs(s - Number(s.toFixed(c))) < 1e-8) {
       casas = c;
       break;
     }
   }
-  // Coordenada com fração de segundo mantém as 3 casas do padrão SIGEF,
-  // sem inventar casas além das informadas.
-  if (casas > 0 && casas < 3) casas = 3;
+  // Sem fonte literal (legados/geometrias), limitar apenas ruído numérico.
   const txt = s.toFixed(casas).replace(".", ",");
   const [int = "", frac] = txt.split(",");
   const seg = frac ? `${int.padStart(2, "0")},${frac}` : int.padStart(2, "0");

@@ -23,6 +23,9 @@ export type VertexCoord = {
   name: string;
   lon: number | null;
   lat: number | null;
+  /** Texto original: conserva casas decimais e zeros finais sem reconversão. */
+  lon_raw?: string | null;
+  lat_raw?: string | null;
   alt: number | null;
   north: number | null;
   east: number | null;
@@ -232,12 +235,15 @@ export function parseGeoCoord(raw: string): number | null {
   }
   if (value === null || !Number.isFinite(value)) return null;
   if (hemi === "S" || hemi === "W" || hemi === "O") value = -Math.abs(value);
-  return Number(value.toFixed(8));
+  return value;
 }
 
 function extractCoords(chunk: string): {
   lon: number | null;
   lat: number | null;
+  /** Texto original: conserva casas decimais e zeros finais sem reconversão. */
+  lon_raw?: string | null;
+  lat_raw?: string | null;
   north: number | null;
   east: number | null;
 } {
@@ -257,6 +263,8 @@ function extractCoords(chunk: string): {
   const latM = LAT_RE.exec(chunk);
   const lonM = LON_RE.exec(chunk);
   return {
+    lat_raw: latM?.[1]?.trim() ?? null,
+    lon_raw: lonM?.[1]?.trim() ?? null,
     lat: latM ? parseGeoCoord(latM[1]!) : null,
     lon: lonM ? parseGeoCoord(lonM[1]!) : null,
     north,
@@ -531,6 +539,9 @@ type TableRow = {
   vante: string | null;
   lon: number | null;
   lat: number | null;
+  /** Texto original: conserva casas decimais e zeros finais sem reconversão. */
+  lon_raw?: string | null;
+  lat_raw?: string | null;
   alt: number | null;
   north: number | null;
   east: number | null;
@@ -553,8 +564,8 @@ function rowFromKinds(cells: string[], kinds: ColKind[], raw: string): TableRow 
     switch (kind) {
       case "vertex": row.vertex = cell; break;
       case "vante": row.vante = cell; break;
-      case "lon": row.lon = parseGeoCoord(cell); break;
-      case "lat": row.lat = parseGeoCoord(cell); break;
+      case "lon": row.lon = parseGeoCoord(cell); row.lon_raw = cell.trim(); break;
+      case "lat": row.lat = parseGeoCoord(cell); row.lat_raw = cell.trim(); break;
       case "alt": row.alt = parseNumber(cell.replace(/[^\d.,-]/g, "")); break;
       case "north": row.north = parseNumber(cell.replace(/[^\d.,-]/g, "")); break;
       case "east": row.east = parseNumber(cell.replace(/[^\d.,-]/g, "")); break;
@@ -616,6 +627,8 @@ function rowByHeuristics(cells: string[], raw: string): TableRow | null {
     const latRaw = geoDms.find((c) => /[NSns]\s*$/.test(c)) ?? geoDms[1]!;
     row.lon = parseGeoCoord(lonRaw);
     row.lat = parseGeoCoord(latRaw);
+    row.lon_raw = lonRaw.trim();
+    row.lat_raw = latRaw.trim();
   }
   for (const n of plainNums) {
     const abs = Math.abs(n);
@@ -702,6 +715,8 @@ function parseMeasureTable(rawText: string): StructuredParse | null {
     const prev = coords.get(key);
     coords.set(key, {
       name: key,
+      lon_raw: r.lon_raw ?? prev?.lon_raw ?? null,
+      lat_raw: r.lat_raw ?? prev?.lat_raw ?? null,
       lon: r.lon ?? prev?.lon ?? null,
       lat: r.lat ?? prev?.lat ?? null,
       alt: r.alt ?? prev?.alt ?? null,
@@ -807,6 +822,7 @@ function parseArrivalSegments(flat: string): StructuredParse | null {
     const key = name.toUpperCase();
     coords.set(key, {
       name: key, lat: found.lat, lon: found.lon,
+      lat_raw: found.lat_raw, lon_raw: found.lon_raw,
       north: found.north, east: found.east, alt: null,
     });
   };
@@ -868,6 +884,8 @@ function parseProseSegments(flat: string): StructuredParse | null {
     const alt = altRaw ? parseNumber(altRaw) : null;
     coords.set(key, {
       name: key,
+      lon_raw: lonRaw.trim(),
+      lat_raw: latRaw.trim(),
       lon: parseGeoCoord(lonRaw),
       lat: parseGeoCoord(latRaw),
       alt,
@@ -1084,6 +1102,8 @@ export function parseMemorial(text: string): ParsedParcel {
       const prev = coordMap.get(key);
       coordMap.set(key, {
         name: key,
+        lat_raw: coords.lat_raw ?? prev?.lat_raw ?? null,
+        lon_raw: coords.lon_raw ?? prev?.lon_raw ?? null,
         lat: coords.lat ?? prev?.lat ?? null,
         lon: coords.lon ?? prev?.lon ?? null,
         north: coords.north ?? prev?.north ?? null,

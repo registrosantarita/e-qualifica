@@ -212,16 +212,16 @@ export function TrechosConferidos({
                       <>
                         <td className="numeric py-2 px-2">
                           <Par
-                            a={coordToDms(v?.lon ?? null, "lon")}
-                            b={coordToDms(w?.lon ?? null, "lon")}
+                            a={coordToDms(v?.lon ?? null, "lon", v?.lon_raw)}
+                            b={coordToDms(w?.lon ?? null, "lon", w?.lon_raw)}
                             corA={corA}
                             corB={corB}
                           />
                         </td>
                         <td className="numeric py-2 px-2">
                           <Par
-                            a={coordToDms(v?.lat ?? null, "lat")}
-                            b={coordToDms(w?.lat ?? null, "lat")}
+                            a={coordToDms(v?.lat ?? null, "lat", v?.lat_raw)}
+                            b={coordToDms(w?.lat ?? null, "lat", w?.lat_raw)}
                             corA={corA}
                             corB={corB}
                           />
