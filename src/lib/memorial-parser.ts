@@ -822,7 +822,7 @@ function parseArrivalSegments(flat: string): StructuredParse | null {
     const key = name.toUpperCase();
     coords.set(key, {
       name: key, lat: found.lat, lon: found.lon,
-      lat_raw: found.lat_raw, lon_raw: found.lon_raw,
+      lat_raw: found.lat_raw ?? null, lon_raw: found.lon_raw ?? null,
       north: found.north, east: found.east, alt: null,
     });
   };
