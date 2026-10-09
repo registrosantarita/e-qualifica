@@ -1005,8 +1005,8 @@ export function parseMemorial(text: string): ParsedParcel {
       if (!prev) return;
       coordMap.set(key, {
         name: key,
-        lon_raw: prev.lon_raw ?? v.lon_raw,
-        lat_raw: prev.lat_raw ?? v.lat_raw,
+        lon_raw: prev.lon_raw ?? v.lon_raw ?? null,
+        lat_raw: prev.lat_raw ?? v.lat_raw ?? null,
         lon: prev.lon ?? v.lon,
         lat: prev.lat ?? v.lat,
         alt: prev.alt ?? v.alt,
