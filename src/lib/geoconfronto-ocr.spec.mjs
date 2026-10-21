@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { parseMemorial } from "./memorial-parser.ts";
 import { needsGeoconfrontoOcr } from "./geoconfronto-text-quality.ts";
 import { ocrDocument } from "./ocr.server.ts";
+import { PDFDocument } from "pdf-lib";
 
 const fixture = (name) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
 const prose = fixture("pedacinho-prosa.txt");
@@ -58,7 +59,9 @@ test("OCR interrompido não aceita uma transcrição parcial", async () => {
   process.env.LOVABLE_API_KEY = "test-key";
   globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: prose.slice(0, 200) }, finish_reason: "length" }] }));
   try {
-    const result = await ocrDocument(new Uint8Array([1]).buffer, "pdf", "teste", { geoconfronto: true });
+    const pdf = await PDFDocument.create();
+    pdf.addPage();
+    const result = await ocrDocument(new Uint8Array(await pdf.save()).buffer, "pdf", "teste", { geoconfronto: true });
     assert.equal(result.text, "");
     assert.match(result.note, /interrompida/);
   } finally {
