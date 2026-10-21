@@ -4,6 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/.lovable/oauth/consent")({
+  head: () => ({ meta: [
+    { title: "Autorizar acesso — e-Qualifica" },
+    { name: "description", content: "Confirme ou recuse o acesso de um aplicativo à sua conta e-Qualifica." },
+    { property: "og:title", content: "Autorizar acesso — e-Qualifica" },
+    { property: "og:description", content: "Autorização segura de aplicativos conectados ao e-Qualifica." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   ssr: false,
   validateSearch: (s: Record<string, unknown>) => ({
     authorization_id: typeof s['authorization_id'] === "string" ? s['authorization_id'] : "",

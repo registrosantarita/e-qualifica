@@ -1,0 +1,591 @@
+==Start of OCR for page 1==
+Área total
+
+| De | Latitude | Longitude | Altitude | Para | Azim. 3ªEd. | Dist. 3ªEd. |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| SWTM-P-2213 | -21°45'04.004" | -47°20'51.203" | 711.88 | SWTM-P-2214 | 95°05' | 18.03 m |
+| SWTM-P-2214 | -21°45'04.056" | -47°20'50.578" | 711.96 | SWTM-P-2215 | 111°26' | 12.29 m |
+| SWTM-P-2215 | -21°45'04.202" | -47°20'50.180" | 711.97 | SWTM-P-2245 | 125°56' | 24.95 m |
+| SWTM-M-0526 | -21°45'04.678" | -47°20'49.477" | 712.13 | SWTM-P-2216 | 125°46' | 3.90 m |
+| SWTM-P-2216 | -21°45'04.752" | -47°20'49.367" | 711.96 | SWTM-P-2217 | 128°37' | 26.81 m |
+| SWTM-P-2217 | -21°45'05.296" | -47°20'48.638" | 712.18 | SWTM-P-2218 | 128°45' | 36.70 m |
+| SWTM-P-2218 | -21°45'06.043" | -47°20'47.642" | 712.89 | SWTM-P-2219 | 129°36' | 26.44 m |
+| SWTM-P-2219 | -21°45'06.591" | -47°20'46.933" | 713.31 | SWTM-P-2220 | 134°00' | 23.38 m |
+| SWTM-P-2220 | -21°45'07.119" | -47°20'46.348" | 713.93 | SWTM-P-2221 | 135°33' | 31.23 m |
+| SWTM-P-2221 | -21°45'07.844" | -47°20'45.587" | 714.52 | SWTM-M-0508 | 135°52' | 29.27 m |
+| SWTM-M-0518 | -21°45'08.527" | -47°20'44.878" | 715.54 | SWTM-P-2222 | 137°30' | 30.25 m |
+| SWTM-P-2222 | -21°45'09.252" | -47°20'44.167" | 715.70 | SWTM-P-2223 | 128°29' | 19.13 m |
+| SWTM-P-2223 | -21°45'09.639" | -47°20'43.646" | 716.13 | SWTM-M-0509 | 122°23' | 18.72 m |
+| SWTM-M-0519 | -21°45'09.965" | -47°20'43.096" | 716.28 | SWTM-M-0510 | 206°22' | 5.05 m |
+| SWTM-M-0520 | -21°45'10.112" | -47°20'43.174" | 719.17 | SWTM-M-0511 | 259°07' | 46.47 m |
+| SWTM-M-0521 | -21°45'10.397" | -47°20'44.762" | 723.44 | SWTM-M-0512 | 259°07' | 125.21 m |
+| SWTM-M-0522 | -21°45'11.165" | -47°20'49.041" | 728.22 | SWTM-P-2224 | 168°53' | 49.94 m |
+| SWTM-P-2224 | -21°45'12.758" | -47°20'48.706" | 731.72 | SWTM-M-0513 | 169°02' | 50.04 m |
+| SWTM-M-0523 | -21°45'14.355" | -47°20'48.375" | 735.11 | SWTM-P-2225 | 169°06' | 39.41 m |
+| SWTM-P-2225 | -21°45'15.613" | -47°20'48.116" | 738.23 | SWTM-P-2243 | 169°27' | 58.92 m |
+| SWTM-M-0524 | -21°45'17.496" | -47°20'47.741" | 741.79 | SWTM-P-2226 | 260°32' | 84.05 m |
+| SWTM-P-2226 | -21°45'17.945" | -47°20'50.626" | 742.58 | SWTM-P-2227 | 353°07' | 47.96 m |
+| SWTM-P-2227 | -21°45'16.397" | -47°20'50.826" | 739.53 | SWTM-P-2228 | 263°03' | 70.26 m |
+| SWTM-P-2228 | -21°45'16.673" | -47°20'53.253" | 739.73 | AF7-M-1476 | 173°03' | 22.84 m |
+| AF7-M-1476 | -21°45'17.410" | -47°20'53.157" | 740.16 | AF7-M-1475 | 245°59' | 684.53 m |
+| AF7-M-1475 | -21°45'26.465" | -47°21'14.917" | 704.46 | CTI-P-23497 | 245°55' | 681.71 m |
+| CTI-P-23497 | -21°45'35.503" | -47°21'36.578" | 763.59 | CTI-P-23496 | 239°18' | 160.28 m |
+| CTI-P-23496 | -21°45'38.162" | -47°21'41.375" | 769.86 | CTI-P-23495 | 149°33' | 77.68 m |
+| CTI-P-23495 | -21°45'40.339" | -47°21'40.005" | 769.15 | CTI-P-23494 | 138°57' | 130.32 m |
+| CTI-P-23494 | -21°45'43.534" | -47°21'37.027" | 759.48 | CTI-P-23493 | 215°46' | 18.24 m |
+| CTI-P-23493 | -21°45'44.015" | -47°21'37.398" | 760.09 | CTI-P-23492 | 211°54' | 34.90 m |
+| CTI-P-23492 | -21°45'44.978" | -47°21'38.040" | 759.68 | CTI-P-23491 | 206°10' | 68.14 m |
+| CTI-P-23491 | -21°45'46.966" | -47°21'39.086" | 759.68 | CTI-P-23490 | 213°04' | 35.02 m |
+| CTI-P-23490 | -21°45'47.920" | -47°21'39.751" | 759.63 | CTI-P-23489 | 221°18' | 32.47 m |
+| CTI-P-23489 | -21°45'48.713" | -47°21'40.497" | 759.33 | CTI-P-23488 | 225°00' | 44.65 m |
+| CTI-P-23488 | -21°45'49.739" | -47°21'41.596" | 759.70 | CTI-P-23487 | 238°12' | 8.99 m |
+| CTI-P-23487 | -21°45'49.893" | -47°21'41.862" | 759.45 | CTI-P-23486 | 319°21' | 84.21 m |
+| CTI-P-23486 | -21°45'47.816" | -47°21'43.771" | 757.88 | CTI-P-23485 | 314°45' | 60.42 m |
+| CTI-P-23485 | -21°45'46.433" | -47°21'45.264" | 756.75 | CTI-P-23484 | 316°04' | 166.50 m |
+| CTI-P-23484 | -21°45'42.534" | -47°21'49.283" | 753.64 | CTI-P-23483 | 316°08' | 7.42 m |
+| CTI-P-23483 | -21°45'42.360" | -47°21'49.462" | 753.64 | CTI-P-23482 | 25°11' | 109.88 m |
+| CTI-P-23482 | -21°45'39.128" | -47°21'47.834" | 762.71 | SWTM-M-0422 | 24°22' | 5.64 m |
+| SWTM-M-0422 | -21°45'38.961" | -47°21'47.753" | 757.81 | SWTM-M-0421 | 25°28' | 41.74 m |
+| SWTM-M-0421 | -21°45'37.736" | -47°21'47.128" | 756.87 | SWTM-M-0420 | 318°43' | 15.55 m |
+| SWTM-M-0420 | -21°45'37.356" | -47°21'47.485" | 758.39 | SWTM-M-0479 | 40°57' | 39.19 m |
+| SWTM-M-0479 | -21°45'36.394" | -47°21'46.591" | 759.83 | SWTM-M-0480 | 38°08' | 35.12 m |
+
+[ilegível]
+
+Digitalizado com CamScanner
+==End of OCR for page 1==
+==Start of OCR for page 1==
+Continuação Área total
+
+| De | Latitude | Longitude | Altitude | Para | Azim. 3ªEd. | Dist. 3ªEd. |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| SWTM-M-0480 | -21°45'35.496" | -47°21'45.836" | 759.86 | SWTM-M-0481 | 36°15' | 34.11 m |
+| SWTM-M-0481 | -21°45'34.602" | -47°21'45.134" | 759.67 | SWTM-M-0482 | 35°28' | 33.32 m |
+| SWTM-M-0482 | -21°45'33.720" | -47°21'44.461" | 759.57 | SWTM-P-2244 | 34°01' | 36.52 m |
+| SWTM-M-0525 | -21°45'32.736" | -47°21'43.750" | 759.19 | SWTM-M-0484 | 30°59' | 60.28 m |
+| SWTM-M-0484 | -21°45'31.056" | -47°21'42.670" | 758.74 | SWTM-M-0485 | 31°14' | 79.12 m |
+| SWTM-M-0485 | -21°45'28.857" | -47°21'41.242" | 757.43 | SWTM-M-0486 | 135°28' | 111.33 m |
+| SWTM-M-0486 | -21°45'31.437" | -47°21'38.525" | 762.14 | SWTM-M-0487 | 73°33' | 2.94 m |
+| SWTM-M-0487 | -21°45'31.410" | -47°21'38.427" | 762.27 | SWTM-M-0488 | 63°40' | 48.76 m |
+| SWTM-M-0488 | -21°45'30.707" | -47°21'36.906" | 760.55 | SWTM-M-0489 | 62°57' | 72.18 m |
+| SWTM-M-0489 | -21°45'29.640" | -47°21'34.669" | 756.37 | SWTM-M-0490 | 63°00' | 83.65 m |
+| SWTM-M-0490 | -21°45'28.406" | -47°21'32.075" | 749.47 | SWTM-M-0491 | 60°10' | 16.39 m |
+| SWTM-M-0491 | -21°45'28.141" | -47°21'31.580" | 748.21 | SWTM-M-0492 | 330°40' | 23.71 m |
+| SWTM-M-0492 | -21°45'27.469" | -47°21'31.984" | 748.55 | SWTM-M-0493 | 327°45' | 28.44 m |
+| SWTM-M-0493 | -21°45'26.687" | -47°21'32.512" | 748.53 | SWTM-M-0494 | 324°29' | 27.36 m |
+| SWTM-M-0494 | -21°45'25.963" | -47°21'33.065" | 748.06 | SWTM-M-0495 | 319°25' | 24.30 m |
+| SWTM-M-0495 | -21°45'25.363" | -47°21'33.615" | 747.46 | SWTM-M-0496 | 224°27' | 66.38 m |
+| SWTM-M-0496 | -21°45'26.903" | -47°21'35.233" | 752.80 | SWTM-M-0497 | 310°34' | 75.77 m |
+| SWTM-M-0497 | -21°45'25.301" | -47°21'37.236" | 749.62 | SWTM-M-0498 | 319°18' | 24.99 m |
+| SWTM-M-0498 | -21°45'24.685" | -47°21'37.803" | 748.42 | SWTM-M-0499 | 319°50' | 51.60 m |
+| SWTM-M-0499 | -21°45'23.403" | -47°21'38.961" | 746.31 | SWTM-M-0500 | 46°52' | 12.28 m |
+| SWTM-M-0500 | -21°45'23.130" | -47°21'38.649" | 746.53 | SWTM-M-0501 | 49°12' | 25.85 m |
+| SWTM-M-0501 | -21°45'22.581" | -47°21'37.968" | 743.96 | SWTM-M-0502 | 48°49' | 35.89 m |
+| SWTM-M-0502 | -21°45'21.813" | -47°21'37.028" | 739.72 | SWTM-M-0503 | 43°01' | 38.79 m |
+| SWTM-M-0503 | -21°45'20.891" | -47°21'36.107" | 734.12 | SWTM-M-0504 | 339°55' | 24.70 m |
+| SWTM-M-0504 | -21°45'20.137" | -47°21'36.402" | 733.55 | SWTM-P-2229 | 87°47' | 11.99 m |
+| SWTM-P-2229 | -21°45'20.122" | -47°21'35.985" | 731.98 | SWTM-P-2230 | 88°26' | 13.51 m |
+| SWTM-P-2230 | -21°45'20.110" | -47°21'35.515" | 729.94 | SWTM-P-2231 | 93°46' | 12.61 m |
+| SWTM-P-2231 | -21°45'20.137" | -47°21'35.077" | 726.73 | SWTM-P-2232 | 99°22' | 13.22 m |
+| SWTM-P-2232 | -21°45'20.207" | -47°21'34.623" | 722.06 | SWTM-P-2233 | 92°11' | 5.64 m |
+| SWTM-P-2233 | -21°45'20.214" | -47°21'34.427" | 719.58 | SWTM-P-2234 | 107°11' | 12.18 m |
+| SWTM-P-2234 | -21°45'20.331" | -47°21'34.022" | 717.63 | SWTM-P-2235 | 87°42' | 20.79 m |
+| SWTM-P-2235 | -21°45'20.304" | -47°21'33.299" | 718.20 | SWTM-P-2236 | 84°27' | 15.59 m |
+| SWTM-P-2236 | -21°45'20.255" | -47°21'32.759" | 717.74 | SWTM-P-2237 | 80°44' | 20.47 m |
+| SWTM-P-2237 | -21°45'20.148" | -47°21'32.056" | 715.78 | SWTM-P-2238 | 76°23' | 10.20 m |
+| SWTM-P-2238 | -21°45'20.070" | -47°21'31.711" | 715.87 | SWTM-M-0505 | 77°08' | 19.07 m |
+| SWTM-M-0505 | -21°45'19.932" | -47°21'31.064" | 713.63 | SWTM-M-0506 | 88°49' | 52.66 m |
+| SWTM-M-0506 | -21°45'19.897" | -47°21'29.232" | 709.05 | SWTM-M-0507 | 87°47' | 93.43 m |
+| SWTM-M-0507 | -21°45'19.780" | -47°21'25.983" | 698.29 | SWTM-M-0508 | 87°49' | 125.06 m |
+| SWTM-M-0508 | -21°45'19.626" | -47°21'21.634" | 689.04 | SWTM-P-2239 | 05°13' | 29.96 m |
+| SWTM-P-2239 | -21°45'18.656" | -47°21'21.539" | 688.25 | SWTM-P-2240 | 05°33' | 20.46 m |
+| SWTM-P-2240 | -21°45'17.994" | -47°21'21.470" | 688.40 | SWTM-P-2241 | 04°41' | 22.87 m |
+| SWTM-P-2241 | -21°45'17.253" | -47°21'21.405" | 688.36 | SWTM-M-0509 | 23°17' | 162.60 m |
+| SWTM-M-0509 | -21°45'12.398" | -47°21'19.167" | 686.19 | SWTM-P-2242 | 100°31' | 10.43 m |
+| SWTM-P-2242 | -21°45'12.460" | -47°21'18.810" | 686.37 | SWTM-P-2243 | 100°15' | 37.50 m |
+| SWTM-P-2243 | -21°45'12.677" | -47°21'17.526" | 690.45 | SWTM-P-2244 | 101°53' | 30.45 m |
+| SWTM-P-2244 | -21°45'12.881" | -47°21'16.489" | 693.39 | SWTM-P-2245 | 103°16' | 25.60 m |
+
+Sítio [ilegível]
+
+Digitalizado com CamScanner
+==End of OCR for page 1==
+==Start of OCR for page 1==
+Continuação Área total
+De;Latitude;Longitude;Altitude;Para;Azim. 3ªEd.;Dist. 3ªEd.
+SWTM-P-2245;-21°45'13.072";-47°21'15.622";696.12;SWTM-P-2246;104°01';39.99 m
+SWTM-P-2246;-21°45'13.387";-47°21'14.272";699.80;SWTM-M-0510;103°21';24.22 m
+SWTM-M-0510;-21°45'13.569";-47°21'13.452";701.93;SWTM-M-0511;25°29';45.87 m
+SWTM-M-0511;-21°45'12.223";-47°21'12.765";701.38;SWTM-P-2247;88°52';53.43 m
+SWTM-P-2247;-21°45'12.189";-47°21'10.906";705.92;SWTM-P-2248;89°25';81.70 m
+SWTM-P-2248;-21°45'12.162";-47°21'08.063";713.00;SWTM-P-2249;87°10';41.92 m
+SWTM-P-2249;-21°45'12.095";-47°21'06.606";719.12;SWTM-P-2250;84°51';45.59 m
+SWTM-P-2250;-21°45'11.962";-47°21'05.026";723.48;SWTM-M-0512;85°33';79.73 m
+SWTM-M-0512;-21°45'11.761";-47°21'02.260";726.82;SWTM-M-0513;86°22';48.14 m
+SWTM-M-0513;-21°45'11.662";-47°21'00.588";726.40;SWTM-P-2251;26°34';133.69 m
+SWTM-P-2251;-21°45'07.775";-47°20'58.507";717.44;SWTM-M-0514;27°03';109.11 m
+SWTM-M-0514;-21°45'04.616";-47°20'56.780";711.60;SWTM-M-0515;81°58';20.72 m
+SWTM-M-0515;-21°45'04.522";-47°20'56.066";711.41;SWTM-P-2252;81°40';22.10 m
+SWTM-P-2252;-21°45'04.418";-47°20'55.305";711.32;SWTM-P-2253;82°16';34.54 m
+SWTM-P-2253;-21°45'04.267";-47°20'54.114";711.50;SWTM-M-0516;82°17';31.64 m
+SWTM-M-0516;-21°45'04.129";-47°20'53.023";712.19;SWTM-M-0517;86°01';36.38 m
+SWTM-M-0517;-21°45'04.047";-47°20'51.760";712.35;SWTM-P-2213;85°16';16.06 m
+
+Área (SGL): 66,1597 ha
+Perímetro (Cart.): 6.113,63 m
+
+Digitalizado com CamScanner
+==End of OCR for page 1==
+DTJ - Participações Ltda S
+Matrícula n° 8657
+
+SWTM-P-2229
+SWTM-P-2230
+SWTM-M-0504 46
+SWTM-P-2235
+SWTM-M-0505
+SWTM-M-0506 67
+SWTM-M-0507
+SWTM-F
+SWTM-F
+SWTM-P
+
+Sitio Nossa Senhora das Graças
+Wander Ricardo Patroni
+Matrícula n° 9360
+
+SWTM-M-0499
+SWTM-M-0498
+SWTM-M-0497
+
+SWTM-M-0503
+SWTM-M-0502
+SWTM-M-0501
+SWTM-M-0500
+SWTM-M-0496
+63
+SWTM-M-0495
+SWTM-M-0494
+SWTM-M-0493
+SWTM-M-0492
+SWTM-M-0491
+SWTM-M-0490
+56
+SWTM-M-0489
+SWTM-M-0488
+SWTM-M-0487
+53 SWTM-M-0486
+
+Posse (origem na matrícula nº 8655
+Wander Ricardo Patroni
+Futuro processo de usucapião
+
+SWTM-M-0485
+52
+
+Sitio Nossa Senhora das Graças
+Wander Ricardo Patroni
+Matrícula nº 9360
+
+SWTM-M-0484
+
+SWTM-M-0525
+50
+SWTM-M-0482
+49
+SWTM-M-0481
+48
+SWTM-M-0480
+47
+SWTM-M-0479
+46
+SWTM-M-0421
+44
+SWTM-M-0422
+CTI-P-23482
+
+27
+CTI-P-23497
+
+28 CTI-P-23496
+29 CTI-P-23495
+
+Sitio
+Wilson Gon
+Matríc
+
+Fazenda Primavera
+Arilson Hermes Lovo e outro
+Matrícula n° 20390
+
+Sitio Boa Esperança
+Haroldo Mendes de Campos e outros
+Matrícula nº 850
+
+SWTM-M-0420
+43
+
+CTI-P-23483
+40
+
+39
+
+38
+
+Fazenda Primavera
+Arilson Hermes Lovo e outros
+Matrícula nº 1399
+
+31 CTI-P-23494
+32
+33
+CTI-P-23490
+34
+35
+CTI-P-23487
+
+Fazenda Primavera
+Arilson Hermes Lovo e ou
+Matrícula nº 1399
+
+Digitalizado com CamScanner
+DTJ - Participações Ltda
+Matrícula n° 8657
+
+DTJ - Participações Ltda
+Matrícula n° 8657
+
+Oswaldo Martins [ilegível]
+Matrí[ilegível]
+
+SWTM-P-2219
+SWTM-P-2233
+SWTM-M-0515
+SWTM-M-0514
+SWTM-P-2251
+SWTM-P-2250
+SWTM-M-0512
+SWTM-M-0513
+SWTM-P-2247
+SWTM-M-0510
+SWTM-P-2246
+SWTM-P-2245
+SWTM-P-2242
+SWTM-M-0509
+SWTM-M-0510
+SWTM-P-2227
+SWTM-P-2228
+AF7-M-1476
+
+SWTM-P-2241
+SWTM-P-2240
+SWTM-P-2239
+SWTM-M-0508
+
+SWTM-M-0507
+SWTM-M-0506
+SWTM-M-0505
+SWTM-P-2235
+SWTM-P-2230
+SWTM-P-2229
+SWTM-M-0504
+SWTM-M-0503
+SWTM-M-0502
+SWTM-M-0501
+SWTM-M-0500
+WTM-M-0499
+WTM-M-0498
+SWTM-M-0497
+SWTM-M-0496
+SWTM-M-0495
+SWTM-M-0494
+SWTM-M-0493
+SWTM-M-0492
+SWTM-M-0491
+SWTM-M-0490
+SWTM-M-0489
+SWTM-M-0488
+SWTM-M-0487
+SWTM-M-0486
+
+AF7-M-1475
+
+Sítio São Judas
+Celso Eduardo Campos O[ilegível]
+Matrícula n° 19196
+
+TM-M-0525
+M-0482
+0481
+
+Sítio Renascer
+Wilson Gonçalves de Campos
+Matrícula n° 13991
+
+OCTI-P-23497
+
+OCTI-P-23496
+Fazenda Primavera
+Arilson Hermes Lovo e outros
+Matrícula n° 20390
+
+OCTI-P-23494
+
+Fazenda Primavera
+OCTI-P-23490
+Arilson Hermes Lovo e outros
+Matrícula n° 1399
+
+OCTI-P-23487
+
+Digitalizado com CamScanner
+==Start of OCR for page 1==
+735.72 | SWTM-M-0503 | [ilegível] | [ilegível]
+734.12 | SWTM-M-0504 | 339°55' | 24.70 m
+733.55 | SWTM-P-2229 | 87°47' | 11.99 m
+731.98 | SWTM-P-2230 | 88°26' | 13.51 m
+729.94 | SWTM-P-2231 | 93°46' | 12.61 m
+726.73 | SWTM-P-2232 | 99°22' | 13.22 m
+722.06 | SWTM-P-2233 | 92°11' | 5.64 m
+719.58 | SWTM-P-2234 | 107°11' | 12.18 m
+717.63 | SWTM-P-2235 | 87°42' | 20.79 m
+718.20 | SWTM-P-2236 | 84°27' | 15.59 m
+717.74 | SWTM-P-2237 | 80°44' | 20.47 m
+715.78 | SWTM-P-2238 | 76°23' | 10.20 m
+715.87 | SWTM-M-0505 | 77°08' | 19.07 m
+713.63 | SWTM-M-0506 | 88°49' | 52.66 m
+709.05 | SWTM-M-0507 | 87°47' | 93.43 m
+698.29 | SWTM-M-0508 | 87°49' | 125.06 m
+689.04 | SWTM-P-2239 | 05°13' | 29.96 m
+688.25 | SWTM-P-2240 | 05°33' | 20.46 m
+688.40 | SWTM-P-2241 | 04°41' | 22.87 m
+688.36 | SWTM-M-0509 | 23°17' | 162.60 m
+686.19 | SWTM-P-2242 | 100°31' | 10.43 m
+686.37 | SWTM-P-2243 | 100°15' | 37.50 m
+690.45 | SWTM-P-2244 | 101°53' | 30.45 m
+693.39 | SWTM-P-2245 | 103°16' | 25.60 m
+
+Sítio Roseira
+Oswaldo Martins Prudente Correa e outros
+Matrícula n° 13784
+
+José Augusto Georgetto
+Matrícula n° 8212
+
+Sítio Santo Antônio
+Luis Augusto Vaneti
+Matrícula n° 1487
+
+I - Participações Ltda
+Matrícula n° 8657
+
+Carlos Roberto Zavaski
+Matrícula n° 4642
+
+Célio José Fernandes
+Matrícula n° 4639
+
+Célio José Fernandes
+Matrícula n° 5034
+
+Cemitério Municipal Distrito de
+Santa Cruz da Estrela
+
+Sítio São Judas
+Celso Eduardo Campos Osse
+Matrícula n° 19196
+
+Anuência dos confrontantes:
+
+Nós, abaixo assinado, legítimos proprietários dos
+imóveis confrontantes da área objeto de matrícula n° 850
+propriedade do Espólio de Milton Braz de Campos, descritas
+conforme as divisas constantes em planta e memorial anexo,
+declaramos não existir nenhuma disputa ou discordância
+sobre os limites comuns existentes entre o citado imóvel
+e o de nossa propriedade. Declaramos ainda que em
+nosso imóvel não existe terceiros ocupantes, e que no
+mesmo encontra-se instalados os próprios proprietários.
+
+Digitalizado com CamScanner
+==End of OCR for page 1==
+==Start of OCR for page 1==
+nº 19196
+
+Anuência dos confrontantes:
+
+Nós, abaixo assinado, legítimos proprietários dos
+imóveis confrontantes da área objeto de matrícula nº 850
+propriedade do Espolio de Milton Braz de Campos, descritas
+conforme as divisas constantes em planta e memorial anexo,
+declaramos não existir nenhuma disputa ou discordância
+sobre os limites comuns existentes entre o citado imóvel
+e o de nossa propriedade. Declaramos ainda que em
+nosso imóvel não existe terceiros ocupantes, e que no
+mesmo encontra-se instalados os próprios proprietários.
+
+José Augusto Georgetto
+CPF nº 016.529.468-02
+Matrícula nº 8212
+
+Wander Ricardo Patroni
+CPF nº 057.312.688-78
+Matrícula nº 9360 e Posse
+
+DTJ - Participações Ltda
+CNPJ nº 18.593.507/0001-61
+Matrícula nº 8657
+
+Haroldo Mendes de Campos
+CPF nº 594.089.798-34
+Matrícula nº 850
+
+Carlos Roberto Zavaski
+CPF nº 025.840.148-19
+Matrícula nº 4642
+
+Arilson Hermes Lovo
+CPF nº 041.829.668-56
+Matrículas nº 20390 e 1399
+
+Oswaldo Martins Prudente Correa
+CPF nº 218.623.878-00
+Matrícula nº 13784
+
+Maria Thereza Geraldo Martins Prudente Corrêa (Usufrutuária)
+CPF nº 742.567.778-49
+Matrícula nº 13784
+
+Célio José Fernandes
+CPF nº 743.720.418-53
+Matrículas nº 4639 e 5034
+
+Wilson Gonçalves de Campos
+CPF nº 094.257.568-72
+Matrícula nº 13991
+
+Celso Eduardo Campos Osse
+CPF nº 918.708.958-00
+Matrícula nº 19196
+
+Prefeitura Municipal de Sanra Rita do Passa Quatro
+CNPJ nº 45.749.819/0001-94
+Cemitério Municipal de Santa Cruz da Estrela
+
+Luis Augusto Vaneti
+CPF nº 848.656.798-04
+Matrícula nº 1487
+
+Digitalizado com CamScanner
+==End of OCR for page 1==
+N
+
+W      E
+
+S
+
+Escala Gráfica:
+0  30  60  90  120  150  180      240      300            450            600
+
+Convenções topográficas - NBR 13133
+
+Construção Alvenaria ; RN Topográfico ; Telefone / Correio ; Hidrante / Registro ; Talude ; Mato / Cultura ; Alinhamento indefinido ; Estrada de ferro
+; --8 mm V ; TELEFONE ; HD (Hidrante) ; (Topo) ; CL ; ;
+; ---20 mm V ; CORREIO ; RG (Reg. d'Água) ; (Base) ; M ; ;
+; --12 mm V ; ; ; ; ; ;
+Construção de madeira ; Vértices Geodésicos ; Ponto cotado ; Poço de visita ; Areia ; Curvas de nível ; Estrada pavimentada ; Cerca de arame
+; ▲ 1ª ORDEM ; • 722,12 ; PV (Não Identificado) ; ; ; ;
+; ▲ 2ª ORDEM ; ; ES (Esgoto) ; ; ; ;
+; ▲ 3ª ORDEM ; ; AP (Águas pluviais) ; ; ; ;
+Laje ou cobertura ; RN Oficial ; Ponto de sondagem ; Poço de visita ; Ponte ; Rio / Ribeirão / Córrego ; Caminho ; Cerca de madeira ou tapume
+; 24.2 ; ; TL (Telefone) ; ; ; ;
+; 1ª ORD. ; ; EL (Eletricidade) ; ; ; ;
+; 2ª ORD. ; ; ; ; ; ;
+Pedra / Rocha ; Estação de Levantamento ; Poste / Luminária ; Boca-de-lobo / Boca-de-leão ; Muro ; Alagado com vegetação ; Duto ; Cerca viva
+; PIQUETE ; - (Poste) ; ; ; Brejo ; ;
+; MARCO ; -- (Luminária) ; ; ; ; ;
+; PINO ; ; ; ; ; ;
+Torre de alta-tensão ; Vértices Topográficos ; Placas de sinalização ; Escada ; Muro de arrimo ; Lagoa / Represa ; Eixo ; Cerca mista
+; POL. PRINCIPAL ; PL (Placa) ; (Subir) ; (Base) ; ; ;
+; POL. SECUNDÁRIA ; SM (Semáforo) ; ; (Topo) ; ; ;
+; POL. AUXILIAR ; ; ; ; ; ;
+Árvore Isolada ; Ponto de divisa não materializado ; Caixas de inspeção ; Valeta ; Alagado ; Canaleta ; Guia rebaixada ; Alambrado ou gradil
+; ; CT (Telefone) ; v v ; ; Can - 0.60 m ; ;
+; ; CE (Eletricidade) ; ; ; ; ;
+; ; CX (Não Identificada) ; ; ; ; ;
+
+Digitalizado com CamScanner
+==Start of OCR for page 1==
+Título:
+Planta do Imóvel Georreferenciado
+ao Sistema Geodésico Brasileiro
+
+Folha:
+01
+
+Objetivo:
+Averbação de area georreferenciada
+
+Município/Comarca:
+Santa Rita do Passa Quatro - SP
+
+Área Total:
+66,1597 ha
+
+Proprietários:
+Haroldo Mendes de Campos e outros
+
+Perímetro:
+6.113,63 m
+
+Imóvel:
+Sítio Santa Rita
+
+Matrícula:
+13990
+
+Escala:
+1 / 6000
+
+Data:
+04/12/2025
+
+Situação:
+
+Proprietários:
+Atestamos sob as penas da lei, serem verdadeiras todas
+as informações apresentadas neste memorial descritivo
+e planta que acompanha o presente laudo.
+
+Espólio de Milton Braz de Campos
+Braga Antonio Salamoni de Campos (Inventariante)
+CPF nº 298.466.908-86
+
+Maria Clara Salamoni de Campos
+CPF nº 277.698.308-50
+
+Haroldo Mendes de Campos
+CPF nº 594.089.798-34
+
+Resp. Técnico:
+Atesto sob as penas da lei, que pessoalmente efetuei
+o levantamento da área em que os valores corretos
+das distancias e a identificação das confrontações
+são as aqui apresentadas.
+
+Gleice Cristiana da Silva
+Técnica em Agrimensura
+CRT nº 25037695864/SP
+TRT n° CFT2505256539
+
+Quadro de Áreas:
+
+Área total
+66,1597 ha
+Perimetro
+6.113,63 m
+
+Aprovações:
+
+Digitalizado com CamScanner
+==End of OCR for page 1==

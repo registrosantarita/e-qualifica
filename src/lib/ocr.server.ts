@@ -84,6 +84,54 @@ export async function ocrDocument(
   fileName = "documento",
   options: { geoconfronto?: boolean } = {},
 ): Promise<OcrResult> {
+  if (!options.geoconfronto || extension.toLowerCase().replace(".", "") !== "pdf") {
+    return transcribeDocument(bytes, extension, fileName, options);
+  }
+  const { PDFDocument, PDFName, PDFDict, PDFRawStream, PDFNumber } = await import("pdf-lib");
+  const pdf = await PDFDocument.load(bytes.slice(0));
+  if (pdf.getPageCount() <= 1) return transcribeDocument(bytes, extension, fileName, options);
+  const pages: string[] = [];
+  let usage: OcrUsage | undefined;
+  for (let index = 0; index < pdf.getPageCount(); index++) {
+    const part = await PDFDocument.create();
+    const [page] = await part.copyPages(pdf, [index]);
+    if (!page) return { text: "", ...(usage ? { usage } : {}), note: "Não foi possível separar uma página para leitura." };
+    part.addPage(page);
+    // A scanned page with one full-page JPEG must be read as an image:
+    // passing the PDF can cause a provider to reuse its damaged OCR layer.
+    const resources = page.node.Resources();
+    const objects = resources?.lookupMaybe(PDFName.of("XObject"), PDFDict);
+    const images = objects?.entries().map(([, ref]) => part.context.lookup(ref))
+      .filter((obj): obj is import("pdf-lib").PDFRawStream => obj instanceof PDFRawStream &&
+        obj.dict.get(PDFName.of("Subtype"))?.toString() === "/Image") ?? [];
+    const image = images.length === 1 ? images[0] : undefined;
+    const fullScan = image && image.dict.get(PDFName.of("Filter"))?.toString() === "/DCTDecode" &&
+      (image.dict.lookupMaybe(PDFName.of("Width"), PDFNumber)?.asNumber() ?? 0) > 600 &&
+      (image.dict.lookupMaybe(PDFName.of("Height"), PDFNumber)?.asNumber() ?? 0) > 600;
+    const saved = fullScan ? image.getContents() : await part.save();
+    const result = await transcribeDocument(new Uint8Array(saved).buffer, fullScan ? "jpg" : "pdf", `${fileName}-pagina-${index + 1}`, options);
+    if (result.usage) {
+      usage = {
+        model: result.usage.model,
+        promptTokens: (usage?.promptTokens ?? 0) + result.usage.promptTokens,
+        completionTokens: (usage?.completionTokens ?? 0) + result.usage.completionTokens,
+        totalTokens: (usage?.totalTokens ?? 0) + result.usage.totalTokens,
+      };
+    }
+    if (!result.text.trim()) return { text: "", ...(usage ? { usage } : {}), note: `Página ${index + 1}: ${result.note ?? "leitura incompleta"} Nenhuma transcrição parcial foi aceita.` };
+    pages.push(result.text.replace(/^\s*M[ée]trica TOPO[^\n]*$/gim, "").replace(/^\s*MEMORIAL\s+DESCRITIVO\s*$/gim, "").trim());
+  }
+  // Join a code explicitly split by the page boundary, never infer digits.
+  const text = pages.join("\n").replace(/\b([A-Z0-9]+-[A-Z]-)\s*\n\s*(\d+)\b/g, "$1$2");
+  return { text, ...(usage ? { usage } : {}), note: "Texto obtido por OCR página a página. Confira a transcrição antes da qualificação." };
+}
+
+async function transcribeDocument(
+  bytes: ArrayBuffer,
+  extension: string,
+  fileName = "documento",
+  options: { geoconfronto?: boolean } = {},
+): Promise<OcrResult> {
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) {
     return { text: "", note: "OCR indisponível: chave de IA não configurada." };

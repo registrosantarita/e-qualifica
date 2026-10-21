@@ -121,7 +121,12 @@ export async function extractTextFromFile(
     if (text.trim().length < 40 || (options.geoconfronto && needsGeoconfrontoOcr(text))) {
       const { ocrDocument } = await import("./ocr.server");
       const ocr = await ocrDocument(bytes.slice(0), "pdf", "documento", options);
-      if (ocr.text.trim()) return ocr;
+      if (ocr.text.trim()) {
+        if (options.geoconfronto && needsGeoconfrontoOcr(ocr.text)) {
+          return { text: "", ...(ocr.usage ? { usage: ocr.usage } : {}), note: "A releitura ainda contém coordenadas ou trechos ilegíveis/incompletos. Confira o PDF e cole a transcrição conferida; nenhuma descrição parcial foi aceita." };
+        }
+        return ocr;
+      }
       return {
         // Do not silently accept the same unreadable layer after OCR fails.
         text: "",
@@ -135,7 +140,7 @@ export async function extractTextFromFile(
   }
   if (OCR_IMAGE_EXTENSIONS.includes(ext)) {
     const { ocrDocument } = await import("./ocr.server");
-    return await ocrDocument(bytes.slice(0), ext);
+    return await ocrDocument(bytes.slice(0), ext, "documento", options);
   }
   if (ext === "kmz") {
     const text = await extractKmzText(bytes);

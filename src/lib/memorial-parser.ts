@@ -392,7 +392,7 @@ type StructuredParse = {
 };
 
 const COORD_DMS = String.raw`-?\d{1,3}\s*[°ºo]\s*\d{1,2}\s*[${APOS}]\s*[\d.,]+\s*[${SEC}]?`;
-const PROSE_COORD = String.raw`${COORD_DMS}\s*[NSEWO]?`;
+const PROSE_COORD = String.raw`${COORD_DMS}(?:\s*[NSEWO]\b)?`;
 
 /** Memorial SIGEF/INCRA em tabela: código, long, lat, altitude, vante, azimute, distância. */
 const SIGEF_ROW_RE = new RegExp(
@@ -417,6 +417,8 @@ function parseSigefTable(rawText: string): StructuredParse | null {
       name: key,
       lon: parseGeoCoord(lonRaw!),
       lat: parseGeoCoord(latRaw!),
+      lon_raw: lonRaw?.trim() ?? null,
+      lat_raw: latRaw?.trim() ?? null,
       alt,
       north: null,
       east: null,
@@ -471,15 +473,15 @@ type ColKind =
 
 const HEADER_KINDS: { re: RegExp; kind: ColKind }[] = [
   { re: /confront|lindeir|vizinh/i, kind: "confrontante" },
-  { re: /vante|seguinte|pr[óo]ximo|para\s+o\s+v[ée]rtice|v[ée]rtice\s+final/i, kind: "vante" },
-  { re: /v[ée]rtice|esta[çc][ãa]o|ponto|marco|estaca|c[óo]digo/i, kind: "vertex" },
+  { re: /^para$|vante|seguinte|pr[óo]ximo|para\s+o\s+v[ée]rtice|v[ée]rtice\s+final/i, kind: "vante" },
+  { re: /^de$|v[ée]rtice|esta[çc][ãa]o|ponto|marco|estaca|c[óo]digo/i, kind: "vertex" },
   { re: /longitude|\blon\b|\blong\b/i, kind: "lon" },
   { re: /latitude|\blat\b/i, kind: "lat" },
   { re: /altitude|altura|cota|\balt\b|\bh\s*\(m\)/i, kind: "alt" },
   { re: /norte|\bn\s*\(m\)|^n$/i, kind: "north" },
   { re: /este|leste|\be\s*\(m\)|^e$/i, kind: "east" },
-  { re: /azimute|rumo|dire[çc][ãa]o/i, kind: "azimuth" },
-  { re: /dist[âa]ncia|extens[ãa]o|comprimento|medida/i, kind: "distance" },
+  { re: /azim\.?|rumo|dire[çc][ãa]o/i, kind: "azimuth" },
+  { re: /dist\.?|extens[ãa]o|comprimento|medida/i, kind: "distance" },
 ];
 
 const DMS_TOKEN_RE = new RegExp(
@@ -494,11 +496,14 @@ function tokenizeRow(line: string): string[] {
     dms.push(m.trim());
     return `\u0001${dms.length - 1}\u0001`;
   });
-  const explicit = /[|;\t]|\s{2,}/.test(masked);
+  const delimiter = /[|;\t]/.test(masked);
+  const explicit = delimiter || /\s{2,}/.test(masked);
   const parts = masked
     .split(explicit ? /\s*[|;\t]\s*|\s{2,}/ : /\s+/)
     .map((p) => p.trim())
-    .filter((p) => p.length > 0);
+    .filter((p) => delimiter || p.length > 0);
+  if (delimiter && line.trim().startsWith("|")) parts.shift();
+  if (delimiter && line.trim().endsWith("|")) parts.pop();
   return parts.map((p) =>
     p.replace(/\u0001(\d+)\u0001/g, (_, i: string) => dms[Number(i)] ?? ""),
   );
@@ -520,7 +525,8 @@ function headerKinds(line: string): ColKind[] | null {
     else kinds[i] = temVante ? "ignore" : "vante";
   }
   const useful = kinds.filter((k) => k !== "ignore").length;
-  return useful >= 3 ? kinds : null;
+  return useful >= 3 && kinds.includes("vertex") &&
+    (kinds.includes("lon") || kinds.includes("lat") || kinds.includes("north") || kinds.includes("east") || kinds.includes("distance")) ? kinds : null;
 
 }
 
@@ -532,7 +538,7 @@ const META_LINE_RE =
 
 /** Código de vértice plausível: contém dígito ou é uma sigla curta. */
 const isVertexCode = (t: string) =>
-  isCode(t) && (/\d/.test(t) || t.replace(/[^A-Za-z]/g, "").length <= 3);
+  /^[A-Za-z][\w.-]{0,23}$/.test(t) && (/\d/.test(t) || t.length <= 3);
 
 
 type TableRow = {
@@ -588,7 +594,7 @@ function rowFromKinds(cells: string[], kinds: ColKind[], raw: string): TableRow 
       default: break;
     }
   });
-  if (!row.vertex || !isCode(row.vertex)) return null;
+  if (!row.vertex || !isVertexCode(row.vertex)) return null;
   const hasData =
     row.lat !== null || row.lon !== null || row.north !== null ||
     row.east !== null || row.alt !== null || row.distance !== null ||
@@ -599,6 +605,7 @@ function rowFromKinds(cells: string[], kinds: ColKind[], raw: string): TableRow 
 /** Linha de tabela sem cabeçalho: infere colunas pelo tipo de cada célula. */
 function rowByHeuristics(cells: string[], raw: string): TableRow | null {
   if (cells.length < 3) return null;
+  if (!isVertexCode(cells[0] ?? "")) return null;
   if (META_LINE_RE.test(raw)) return null;
 
   const row: TableRow = {
@@ -613,7 +620,7 @@ function rowByHeuristics(cells: string[], raw: string): TableRow | null {
 
   for (const cell of cells) {
     if (/[°ºo]\s*\d{1,2}\s*['′]/.test(cell)) {
-      if (/[NSEWOnsewo]\s*$/.test(cell)) geoDms.push(cell);
+      if (/^-|[NSEWO]\s*$|["”″]/.test(cell)) geoDms.push(cell);
       else if (azCell === null) azCell = cell;
       else geoDms.push(cell);
       continue;
@@ -624,8 +631,8 @@ function rowByHeuristics(cells: string[], raw: string): TableRow | null {
   }
 
   if (geoDms.length >= 2) {
-    const lonRaw = geoDms.find((c) => /[EWOewo]\s*$/.test(c)) ?? geoDms[0]!;
-    const latRaw = geoDms.find((c) => /[NSns]\s*$/.test(c)) ?? geoDms[1]!;
+    const lonRaw = geoDms.find((c) => /[EWOewo]\s*$/.test(c)) ?? geoDms[0] ?? "";
+    const latRaw = geoDms.find((c) => /[NSns]\s*$/.test(c)) ?? geoDms[1] ?? "";
     row.lon = parseGeoCoord(lonRaw);
     row.lat = parseGeoCoord(latRaw);
     row.lon_raw = lonRaw.trim();
@@ -702,6 +709,14 @@ function parseMeasureTable(rawText: string): StructuredParse | null {
       continue;
     }
     const cells = tokenizeRow(line);
+    if (kinds?.includes("lon") && kinds.includes("lat")) {
+      if (cells.length < kinds.length) continue;
+      if (!isVertexCode(cells[kinds.indexOf("vertex")] ?? "")) continue;
+      const lonCell = cells[kinds.indexOf("lon")] ?? "";
+      const latCell = cells[kinds.indexOf("lat")] ?? "";
+      if ((lonCell && !/^-?\d/.test(lonCell)) || (latCell && !/^-?\d/.test(latCell)) ||
+        (!lonCell && !latCell)) continue;
+    }
     const row = kinds
       ? (rowFromKinds(cells, kinds, line) ?? rowByHeuristics(cells, line))
       : rowByHeuristics(cells, line);
@@ -1176,6 +1191,18 @@ export function parseMemorial(text: string): ParsedParcel {
     warnings.push(
       "Nenhum segmento (vértice/azimute/distância) foi identificado. Verifique se o texto é um memorial descritivo.",
     );
+  }
+
+  // Explicit vante codes must agree with the next row's origin. Keep the
+  // source code as read, but never let a mislabeled row silently cascade.
+  if (structured && segments.length >= 3) {
+    segments.forEach((segment, index) => {
+      const next = segments[index + 1];
+      if (!next || !segment.to_vertex || !next.from_vertex) return;
+      if (segment.to_vertex.toUpperCase() !== next.from_vertex.toUpperCase()) {
+        warnings.push(`Sequência divergente: ${segment.from_vertex} aponta para ${segment.to_vertex}, mas o próximo trecho inicia em ${next.from_vertex}; confira os códigos no PDF. Nenhum código foi substituído.`);
+      }
+    });
   }
 
   // Uma ligação contínua entre trechos não prova que a transcrição não saltou
