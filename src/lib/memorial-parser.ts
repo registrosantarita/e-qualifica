@@ -1193,6 +1193,18 @@ export function parseMemorial(text: string): ParsedParcel {
     );
   }
 
+  // Explicit vante codes must agree with the next row's origin. Keep the
+  // source code as read, but never let a mislabeled row silently cascade.
+  if (structured && segments.length >= 3) {
+    segments.forEach((segment, index) => {
+      const next = segments[index + 1];
+      if (!next || !segment.to_vertex || !next.from_vertex) return;
+      if (segment.to_vertex.toUpperCase() !== next.from_vertex.toUpperCase()) {
+        warnings.push(`Sequência divergente: ${segment.from_vertex} aponta para ${segment.to_vertex}, mas o próximo trecho inicia em ${next.from_vertex}; confira os códigos no PDF. Nenhum código foi substituído.`);
+      }
+    });
+  }
+
   // Uma ligação contínua entre trechos não prova que a transcrição não saltou
   // um vértice. Só sinalizar saltos quando os códigos compartilham prefixo e
   // numeração consecutiva; nunca criar um trecho a partir de um número ausente.

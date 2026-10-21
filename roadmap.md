@@ -1,5 +1,5 @@
 # Tarefas
-- [ ] Corrigir extração dos três PDFs do Sítio Santa Rita, verificar continuidade e preservar divergências reais entre as fontes.
+- [x] Corrigir extração dos três PDFs do Sítio Santa Rita: 109 trechos e coordenadas por fonte; leitura por página, colunas completas e códigos inconsistentes sinalizados, sem forçar coincidências. Verificação autenticada indisponível: nenhuma conta corresponde ao solicitante.
 - [x] Corrigir leitura do memorial digitalizado da Chácara Pedacinho do Céu e conferir medidas contra o SIGEF: 16 trechos recuperados na leitura real e 19 testes aprovados; altitude FAF-M-1856 difere nos originais (714,050 / 714,5 m).
 - [x] Preservar todas as casas decimais das coordenadas do GeoConfronto na leitura, apresentação e exportação; regressões passaram, inspeção de análise autenticada depende de login na prévia.
 - [x] Liberar relatórios e exportações geométricas no GeoConfronto somente após conclusão, exceto para administradores.

@@ -40,6 +40,17 @@ test("coluna vazia fica pendente sem deslocar latitude para longitude", () => {
   assert.equal(p.vertices[0].lat, -21.1);
 });
 
+test("planta mantém somente 109 linhas completas e sinaliza códigos incoerentes sem substituição", () => {
+  const text = readFileSync(new URL("./fixtures/santa-rita-planta.txt", import.meta.url), "utf8");
+  const parcels = parseParcelas(text, false);
+  assert.equal(parcels.length, 1);
+  assert.equal(parcels[0].segments.length, 109);
+  assert.equal(parcels[0].vertices.length, 109);
+  assert.ok(parcels[0].vertices.every(v => v.lon !== null && v.lat !== null));
+  assert.ok(parcels[0].warnings.some(w => w.includes("SWTM-P-2245") && w.includes("Sequência divergente")));
+  assert.equal(parcels[0].segments[2].to_vertex, "SWTM-P-2245");
+});
+
 test("OCR de múltiplas páginas processa cada página e recusa resultado parcial", async () => {
   const pdf = await PDFDocument.create(); pdf.addPage(); pdf.addPage();
   const bytes = new Uint8Array(await pdf.save()).buffer;
