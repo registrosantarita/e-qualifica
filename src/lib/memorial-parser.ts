@@ -392,7 +392,7 @@ type StructuredParse = {
 };
 
 const COORD_DMS = String.raw`-?\d{1,3}\s*[°ºo]\s*\d{1,2}\s*[${APOS}]\s*[\d.,]+\s*[${SEC}]?`;
-const PROSE_COORD = String.raw`${COORD_DMS}\s*[NSEWO]?`;
+const PROSE_COORD = String.raw`${COORD_DMS}(?:\s*[NSEWO]\b)?`;
 
 /** Memorial SIGEF/INCRA em tabela: código, long, lat, altitude, vante, azimute, distância. */
 const SIGEF_ROW_RE = new RegExp(
@@ -496,11 +496,14 @@ function tokenizeRow(line: string): string[] {
     dms.push(m.trim());
     return `\u0001${dms.length - 1}\u0001`;
   });
-  const explicit = /[|;\t]|\s{2,}/.test(masked);
+  const delimiter = /[|;\t]/.test(masked);
+  const explicit = delimiter || /\s{2,}/.test(masked);
   const parts = masked
     .split(explicit ? /\s*[|;\t]\s*|\s{2,}/ : /\s+/)
     .map((p) => p.trim())
-    .filter((p) => p.length > 0);
+    .filter((p) => delimiter || p.length > 0);
+  if (delimiter && line.trim().startsWith("|")) parts.shift();
+  if (delimiter && line.trim().endsWith("|")) parts.pop();
   return parts.map((p) =>
     p.replace(/\u0001(\d+)\u0001/g, (_, i: string) => dms[Number(i)] ?? ""),
   );
@@ -615,7 +618,7 @@ function rowByHeuristics(cells: string[], raw: string): TableRow | null {
 
   for (const cell of cells) {
     if (/[°ºo]\s*\d{1,2}\s*['′]/.test(cell)) {
-      if (/[NSEWOnsewo]\s*$/.test(cell)) geoDms.push(cell);
+      if (/^-|[NSEWO]\s*$|["”″]/.test(cell)) geoDms.push(cell);
       else if (azCell === null) azCell = cell;
       else geoDms.push(cell);
       continue;
@@ -626,8 +629,8 @@ function rowByHeuristics(cells: string[], raw: string): TableRow | null {
   }
 
   if (geoDms.length >= 2) {
-    const lonRaw = geoDms.find((c) => /[EWOewo]\s*$/.test(c)) ?? geoDms[0]!;
-    const latRaw = geoDms.find((c) => /[NSns]\s*$/.test(c)) ?? geoDms[1]!;
+    const lonRaw = geoDms.find((c) => /[EWOewo]\s*$/.test(c)) ?? geoDms[0] ?? "";
+    const latRaw = geoDms.find((c) => /[NSns]\s*$/.test(c)) ?? geoDms[1] ?? "";
     row.lon = parseGeoCoord(lonRaw);
     row.lat = parseGeoCoord(latRaw);
     row.lon_raw = lonRaw.trim();
