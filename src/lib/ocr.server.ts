@@ -95,14 +95,14 @@ export async function ocrDocument(
   for (let index = 0; index < pdf.getPageCount(); index++) {
     const part = await PDFDocument.create();
     const [page] = await part.copyPages(pdf, [index]);
-    if (!page) return { text: "", usage, note: "Não foi possível separar uma página para leitura." };
+    if (!page) return { text: "", ...(usage ? { usage } : {}), note: "Não foi possível separar uma página para leitura." };
     part.addPage(page);
     // A scanned page with one full-page JPEG must be read as an image:
     // passing the PDF can cause a provider to reuse its damaged OCR layer.
     const resources = page.node.Resources();
     const objects = resources?.lookupMaybe(PDFName.of("XObject"), PDFDict);
     const images = objects?.entries().map(([, ref]) => part.context.lookup(ref))
-      .filter((obj): obj is InstanceType<typeof PDFRawStream> => obj instanceof PDFRawStream &&
+      .filter((obj): obj is import("pdf-lib").PDFRawStream => obj instanceof PDFRawStream &&
         obj.dict.get(PDFName.of("Subtype"))?.toString() === "/Image") ?? [];
     const image = images.length === 1 ? images[0] : undefined;
     const fullScan = image && image.dict.get(PDFName.of("Filter"))?.toString() === "/DCTDecode" &&
@@ -118,12 +118,12 @@ export async function ocrDocument(
         totalTokens: (usage?.totalTokens ?? 0) + result.usage.totalTokens,
       };
     }
-    if (!result.text.trim()) return { text: "", usage, note: `Página ${index + 1}: ${result.note ?? "leitura incompleta"} Nenhuma transcrição parcial foi aceita.` };
+    if (!result.text.trim()) return { text: "", ...(usage ? { usage } : {}), note: `Página ${index + 1}: ${result.note ?? "leitura incompleta"} Nenhuma transcrição parcial foi aceita.` };
     pages.push(result.text.replace(/^\s*M[ée]trica TOPO[^\n]*$/gim, "").replace(/^\s*MEMORIAL\s+DESCRITIVO\s*$/gim, "").trim());
   }
   // Join a code explicitly split by the page boundary, never infer digits.
   const text = pages.join("\n").replace(/\b([A-Z0-9]+-[A-Z]-)\s*\n\s*(\d+)\b/g, "$1$2");
-  return { text, usage, note: "Texto obtido por OCR página a página. Confira a transcrição antes da qualificação." };
+  return { text, ...(usage ? { usage } : {}), note: "Texto obtido por OCR página a página. Confira a transcrição antes da qualificação." };
 }
 
 async function transcribeDocument(

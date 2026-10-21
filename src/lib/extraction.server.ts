@@ -123,7 +123,7 @@ export async function extractTextFromFile(
       const ocr = await ocrDocument(bytes.slice(0), "pdf", "documento", options);
       if (ocr.text.trim()) {
         if (options.geoconfronto && needsGeoconfrontoOcr(ocr.text)) {
-          return { text: "", usage: ocr.usage, note: "A releitura ainda contém coordenadas ou trechos ilegíveis/incompletos. Confira o PDF e cole a transcrição conferida; nenhuma descrição parcial foi aceita." };
+          return { text: "", ...(ocr.usage ? { usage: ocr.usage } : {}), note: "A releitura ainda contém coordenadas ou trechos ilegíveis/incompletos. Confira o PDF e cole a transcrição conferida; nenhuma descrição parcial foi aceita." };
         }
         return ocr;
       }

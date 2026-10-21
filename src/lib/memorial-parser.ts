@@ -525,7 +525,8 @@ function headerKinds(line: string): ColKind[] | null {
     else kinds[i] = temVante ? "ignore" : "vante";
   }
   const useful = kinds.filter((k) => k !== "ignore").length;
-  return useful >= 3 ? kinds : null;
+  return useful >= 3 && kinds.includes("vertex") &&
+    (kinds.includes("lon") || kinds.includes("lat") || kinds.includes("north") || kinds.includes("east") || kinds.includes("distance")) ? kinds : null;
 
 }
 
@@ -537,7 +538,7 @@ const META_LINE_RE =
 
 /** Código de vértice plausível: contém dígito ou é uma sigla curta. */
 const isVertexCode = (t: string) =>
-  isCode(t) && (/\d/.test(t) || t.replace(/[^A-Za-z]/g, "").length <= 3);
+  /^[A-Za-z][\w.-]{0,23}$/.test(t) && (/\d/.test(t) || t.length <= 3);
 
 
 type TableRow = {
@@ -593,7 +594,7 @@ function rowFromKinds(cells: string[], kinds: ColKind[], raw: string): TableRow 
       default: break;
     }
   });
-  if (!row.vertex || !isCode(row.vertex)) return null;
+  if (!row.vertex || !isVertexCode(row.vertex)) return null;
   const hasData =
     row.lat !== null || row.lon !== null || row.north !== null ||
     row.east !== null || row.alt !== null || row.distance !== null ||
@@ -708,6 +709,8 @@ function parseMeasureTable(rawText: string): StructuredParse | null {
     }
     const cells = tokenizeRow(line);
     if (kinds?.includes("lon") && kinds.includes("lat")) {
+      if (cells.length < kinds.length) continue;
+      if (!isVertexCode(cells[kinds.indexOf("vertex")] ?? "")) continue;
       const lonCell = cells[kinds.indexOf("lon")] ?? "";
       const latCell = cells[kinds.indexOf("lat")] ?? "";
       if ((lonCell && !/^-?\d/.test(lonCell)) || (latCell && !/^-?\d/.test(latCell)) ||
