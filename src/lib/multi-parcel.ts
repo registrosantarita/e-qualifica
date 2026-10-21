@@ -137,6 +137,10 @@ export function parseParcelas(text: string, ehGeometria: boolean): ParsedParcel[
     }
   }
 
+  // Repeated page titles are not new parcels: an explicit single walking
+  // start with its closing vertex keeps all continuation pages together.
+  const walkingStarts = [...text.matchAll(/inicia(?:-se)?\s+(?:a\s+)?descri[çc][ãa]o\s+(?:deste|do)\s+per[ií]metro/gi)];
+  if (walkingStarts.length === 1) return [parseMemorial(text)];
   const blocos = blocosDeTexto(text);
 
   if (blocos.length > 1) {
