@@ -417,6 +417,8 @@ function parseSigefTable(rawText: string): StructuredParse | null {
       name: key,
       lon: parseGeoCoord(lonRaw!),
       lat: parseGeoCoord(latRaw!),
+      lon_raw: lonRaw?.trim() ?? null,
+      lat_raw: latRaw?.trim() ?? null,
       alt,
       north: null,
       east: null,
