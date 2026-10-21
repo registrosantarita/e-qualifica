@@ -87,7 +87,7 @@ export async function ocrDocument(
   if (!options.geoconfronto || extension.toLowerCase().replace(".", "") !== "pdf") {
     return transcribeDocument(bytes, extension, fileName, options);
   }
-  const { PDFDocument } = await import("pdf-lib");
+  const { PDFDocument, PDFName, PDFDict, PDFRawStream, PDFNumber } = await import("pdf-lib");
   const pdf = await PDFDocument.load(bytes.slice(0));
   if (pdf.getPageCount() <= 1) return transcribeDocument(bytes, extension, fileName, options);
   const pages: string[] = [];
@@ -97,8 +97,19 @@ export async function ocrDocument(
     const [page] = await part.copyPages(pdf, [index]);
     if (!page) return { text: "", usage, note: "Não foi possível separar uma página para leitura." };
     part.addPage(page);
-    const saved = await part.save();
-    const result = await transcribeDocument(new Uint8Array(saved).buffer, "pdf", `${fileName}-pagina-${index + 1}`, options);
+    // A scanned page with one full-page JPEG must be read as an image:
+    // passing the PDF can cause a provider to reuse its damaged OCR layer.
+    const resources = page.node.Resources();
+    const objects = resources?.lookupMaybe(PDFName.of("XObject"), PDFDict);
+    const images = objects?.entries().map(([, ref]) => part.context.lookup(ref))
+      .filter((obj): obj is InstanceType<typeof PDFRawStream> => obj instanceof PDFRawStream &&
+        obj.dict.get(PDFName.of("Subtype"))?.toString() === "/Image") ?? [];
+    const image = images.length === 1 ? images[0] : undefined;
+    const fullScan = image && image.dict.get(PDFName.of("Filter"))?.toString() === "/DCTDecode" &&
+      (image.dict.lookupMaybe(PDFName.of("Width"), PDFNumber)?.asNumber() ?? 0) > 600 &&
+      (image.dict.lookupMaybe(PDFName.of("Height"), PDFNumber)?.asNumber() ?? 0) > 600;
+    const saved = fullScan ? image.getContents() : await part.save();
+    const result = await transcribeDocument(new Uint8Array(saved).buffer, fullScan ? "jpg" : "pdf", `${fileName}-pagina-${index + 1}`, options);
     if (result.usage) {
       usage = {
         model: result.usage.model,

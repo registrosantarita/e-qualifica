@@ -473,15 +473,15 @@ type ColKind =
 
 const HEADER_KINDS: { re: RegExp; kind: ColKind }[] = [
   { re: /confront|lindeir|vizinh/i, kind: "confrontante" },
-  { re: /vante|seguinte|pr[óo]ximo|para\s+o\s+v[ée]rtice|v[ée]rtice\s+final/i, kind: "vante" },
-  { re: /v[ée]rtice|esta[çc][ãa]o|ponto|marco|estaca|c[óo]digo/i, kind: "vertex" },
+  { re: /^para$|vante|seguinte|pr[óo]ximo|para\s+o\s+v[ée]rtice|v[ée]rtice\s+final/i, kind: "vante" },
+  { re: /^de$|v[ée]rtice|esta[çc][ãa]o|ponto|marco|estaca|c[óo]digo/i, kind: "vertex" },
   { re: /longitude|\blon\b|\blong\b/i, kind: "lon" },
   { re: /latitude|\blat\b/i, kind: "lat" },
   { re: /altitude|altura|cota|\balt\b|\bh\s*\(m\)/i, kind: "alt" },
   { re: /norte|\bn\s*\(m\)|^n$/i, kind: "north" },
   { re: /este|leste|\be\s*\(m\)|^e$/i, kind: "east" },
-  { re: /azimute|rumo|dire[çc][ãa]o/i, kind: "azimuth" },
-  { re: /dist[âa]ncia|extens[ãa]o|comprimento|medida/i, kind: "distance" },
+  { re: /azim\.?|rumo|dire[çc][ãa]o/i, kind: "azimuth" },
+  { re: /dist\.?|extens[ãa]o|comprimento|medida/i, kind: "distance" },
 ];
 
 const DMS_TOKEN_RE = new RegExp(
@@ -707,6 +707,12 @@ function parseMeasureTable(rawText: string): StructuredParse | null {
       continue;
     }
     const cells = tokenizeRow(line);
+    if (kinds?.includes("lon") && kinds.includes("lat")) {
+      const lonCell = cells[kinds.indexOf("lon")] ?? "";
+      const latCell = cells[kinds.indexOf("lat")] ?? "";
+      if ((lonCell && !/^-?\d/.test(lonCell)) || (latCell && !/^-?\d/.test(latCell)) ||
+        (!lonCell && !latCell)) continue;
+    }
     const row = kinds
       ? (rowFromKinds(cells, kinds, line) ?? rowByHeuristics(cells, line))
       : rowByHeuristics(cells, line);
