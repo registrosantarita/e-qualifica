@@ -141,6 +141,9 @@ export function parseParcelas(text: string, ehGeometria: boolean): ParsedParcel[
   // start with its closing vertex keeps all continuation pages together.
   const walkingStarts = [...text.matchAll(/inicia(?:-se)?\s+(?:a\s+)?descri[çc][ãa]o\s+(?:deste|do)\s+per[ií]metro/gi)];
   if (walkingStarts.length === 1) return [parseMemorial(text)];
+  if (/continua[çc][ãa]o\s+[áa]rea\s+total/i.test(text) && /latitude[\s\S]{0,40}longitude/i.test(text)) {
+    return [parseMemorial(text)];
+  }
   const blocos = blocosDeTexto(text);
 
   if (blocos.length > 1) {

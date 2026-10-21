@@ -605,6 +605,7 @@ function rowFromKinds(cells: string[], kinds: ColKind[], raw: string): TableRow 
 /** Linha de tabela sem cabeçalho: infere colunas pelo tipo de cada célula. */
 function rowByHeuristics(cells: string[], raw: string): TableRow | null {
   if (cells.length < 3) return null;
+  if (!isVertexCode(cells[0] ?? "")) return null;
   if (META_LINE_RE.test(raw)) return null;
 
   const row: TableRow = {
