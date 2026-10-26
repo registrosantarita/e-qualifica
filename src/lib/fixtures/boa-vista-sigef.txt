@@ -1,0 +1,29 @@
+MINISTÉRIO DA AGRICULTURA, PECUÁRIA E ABASTECIMENTO
+INSTITUTO NACIONAL DE COLONIZAÇÃO E REFORMA AGRÁRIA
+MEMORIAL DESCRITIVO
+Denominação: Parte do Sítio Boa Vista
+Proprietário(a): MARIA CELIA BRITO
+Matrícula do imóvel: 5898
+Natureza da Área: Particular
+CPF: 020.273.178-21
+Município/UF: Santa Rita do Passa Quatro-SP
+Código INCRA/SNCR: 6131000051348
+Responsável Técnico(a): GABRIEL CENTENARO SAMOGIM
+Formação: Engenheiro(a) Agrimensor(a)
+Conselho Profissional: 5071603003/SPCódigo de credenciamento: CYEP
+Documento de RT: 2620262970905 - SPSistema Geodésico de referência: SIRGAS 2000
+Área (Sistema Geodésico Local): 6,797 ha Coordenadas: Latitude, longitude e altitude geodésicas
+Perímetro (m): 1.246,72 m Azimutes: Azimutes geodésicos
+DESCRIÇÃO DA PARCELA
+VÉRTICE SEGMENTO VANTE
+Código Longitude Latitude Altitude (m) Código Azimute Dist. (m) Confrontações
+Cartório (CNS): (12.033-7) Santa Rita do Passa
+Quatro - SP
+CYEP-M-0695 -47°22'32,587" -21°40'57,510" 796,21 CYEP-M-0703 135°49' 247,57 CNS: 12.033-7 | Mat. 13538 | Antonio Danilo Uliana
+CYEP-M-0703 -47°22'26,586" -21°41'03,282" 801,27 CYEP-M-0704 135°42' 221,69 CNS: 12.033-7 | Mat. 13540 | José Adolfo Veloso
+CYEP-M-0704 -47°22'21,201" -21°41'08,440" 783,38 CYEP-M-0705 224°18' 143,49 CNS: 12.033-7 | Mat. 5899 | Angelo Cesar Bazzo
+CYEP-M-0705 -47°22'24,687" -21°41'11,778" 774,4 CYEP-M-0699 223°06' 48,29 CNS: 12.033-7 | Mat. 5899 | Angelo Cesar Bazzo
+CYEP-M-0699 -47°22'25,835" -21°41'12,924" 768,87 CYEP-M-0698 327°30' 133,95 CNS: 12.033-7 | Mat. 1595 | Maria Célia Brito
+CYEP-M-0698 -47°22'28,338" -21°41'09,251" 782,68 CYEP-M-0697 329°02' 102,58 CNS: 12.033-7 | Mat. 1595 | Maria Célia Brito
+CYEP-M-0697 -47°22'30,173" -21°41'06,391" 790,94 CYEP-M-0696 323°19' 239,65 CNS: 12.033-7 | Mat. 1595 | Maria Célia Brito
+CYEP-M-0696 -47°22'35,151" -21°41'00,142" 780,39 CYEP-M-0695 42°19' 109,5 CNS: 12.033-7 | Mat. 1595 | Maria Célia Brito
