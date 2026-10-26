@@ -21,7 +21,35 @@ import {
 } from "./planta-cotas";
 
 
-const ProcessInput = z.object({ documentId: z.string().uuid() });
+const ProcessInput = z.object({ documentId: z.string().uuid(), finalizeOcr: z.boolean().optional() });
+
+export const readDocumentOcrPage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ documentId: z.string().uuid(), pageIndex: z.number().int().nonnegative() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: doc, error } = await supabase.from("documents").select("*").eq("id", data.documentId).single();
+    if (error || !doc || !doc.storage_path || doc.file_extension?.toLowerCase() !== "pdf") throw new Error("PDF não encontrado para releitura.");
+    const { data: file, error: downloadError } = await supabase.storage.from("documentos").download(doc.storage_path);
+    if (downloadError || !file) throw new Error("Falha ao ler o PDF armazenado.");
+    const bytes = await file.arrayBuffer();
+    const { ocrPdfPage } = await import("./ocr.server");
+    const result = await ocrPdfPage(bytes, data.pageIndex);
+    await registrarConsumo(supabase, { analysisId: doc.analysis_id, documentId: doc.id, userId, fileName: doc.file_name, fileExtension: doc.file_extension, fileSizeBytes: doc.file_size_bytes, usage: result.usage, note: `OCR página ${data.pageIndex + 1}: ${result.note ?? ""}` });
+    // Keep checked pages on the existing document, not in a client-supplied transcript.
+    const { data: latest } = await supabase.from("documents").select("extracted_text").eq("id", doc.id).single();
+    const state = JSON.parse(latest?.extracted_text ?? "{}") as { kind?: string; pages?: string[]; pageCount?: number };
+    if (state.kind !== "ocr-pages" || state.pageCount !== result.pageCount || state.pages?.length !== data.pageIndex) throw new Error("A sequência de releitura mudou. Reinicie a extração.");
+    if (!result.text.trim()) {
+      const message = `Página ${data.pageIndex + 1}: ${result.note ?? "leitura incompleta"}. Nenhuma descrição parcial foi aceita.`;
+      await supabase.from("documents").update({ status: "failed", error_message: message }).eq("id", doc.id);
+      return { ok: false as const, message, pageCount: result.pageCount };
+    }
+    state.pages.push(result.text);
+    const { error: saveError } = await supabase.from("documents").update({ extracted_text: JSON.stringify(state), error_message: `Releitura: ${state.pages.length}/${result.pageCount} páginas.` }).eq("id", doc.id);
+    if (saveError) throw new Error("Falha ao guardar a página relida.");
+    return { ok: true as const, pageCount: result.pageCount };
+  });
 
 export const processDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -40,20 +68,46 @@ export const processDocument = createServerFn({ method: "POST" })
     let note: string | undefined;
     let usage: { model: string; promptTokens: number; completionTokens: number; totalTokens: number } | undefined;
 
-    if (!text && doc.storage_path) {
+    if (data.finalizeOcr) {
+      const state = JSON.parse(doc.extracted_text ?? "{}") as { kind?: string; pages?: string[]; pageCount?: number };
+      if (state.kind !== "ocr-pages" || !state.pageCount || state.pages?.length !== state.pageCount || state.pages.some(p => !p.trim())) throw new Error("Releitura incompleta. Nenhuma descrição parcial foi aceita.");
+      text = state.pages.map(p => p.replace(/^\s*M[ée]trica TOPO[^\n]*$/gim, "").replace(/^\s*MEMORIAL\s+DESCRITIVO\s*$/gim, "").trim()).join("\n").replace(/\b([A-Z0-9]+-[A-Z]-)\s*\n\s*(\d+)\b/g, "$1$2");
+      const { needsGeoconfrontoOcr } = await import("./geoconfronto-text-quality");
+      if (needsGeoconfrontoOcr(text)) {
+        const message = "A releitura ainda contém coordenadas ou trechos incompletos. Confira o PDF; nenhuma descrição parcial foi aceita.";
+        await supabase.from("documents").update({ status: "failed", error_message: message }).eq("id", doc.id);
+        return { ok: false as const, message };
+      }
+      note = "Texto obtido por OCR página a página. Confira a transcrição antes da qualificação.";
+    } else if (!text && doc.storage_path) {
       const { data: file, error: dlError } = await supabase.storage
         .from("documentos")
         .download(doc.storage_path);
       if (dlError || !file) throw new Error("Falha ao ler o arquivo armazenado.");
-      const { extractTextFromFile } = await import("./extraction.server");
+      const bytes = await file.arrayBuffer();
+      const { extractTextFromFile, extractPdfText } = await import("./extraction.server");
+      if (doc.file_extension?.toLowerCase() === "pdf") {
+        const nativeText = await extractPdfText(bytes);
+        const { needsGeoconfrontoOcr } = await import("./geoconfronto-text-quality");
+        if (needsGeoconfrontoOcr(nativeText)) {
+          const { PDFDocument } = await import("pdf-lib");
+          const pageCount = (await PDFDocument.load(bytes.slice(0))).getPageCount();
+          const { error: saveError } = await supabase.from("documents").update({ extracted_text: JSON.stringify({ kind: "ocr-pages", pageCount, pages: [] }), error_message: "Releitura iniciada.", status: "uploaded" }).eq("id", doc.id);
+          if (saveError) throw new Error("Falha ao iniciar a releitura.");
+          return { ok: false as const, message: "Releitura necessária.", ocrRequired: true as const, pageCount };
+        }
+        text = nativeText;
+      }
+      if (!text) {
       const result = await extractTextFromFile(
-        await file.arrayBuffer(),
+        bytes,
         doc.file_extension ?? "",
         { geoconfronto: true },
       );
       text = result.text;
       note = result.note;
       usage = result.usage;
+      }
     }
 
     if (doc.source_document_id && !doc.original_text) {

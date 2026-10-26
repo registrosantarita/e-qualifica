@@ -23,3 +23,4 @@
 - Prose walking extraction accepts abbreviated coordinate labels, hemisphere suffixes and optional "de" before distances, so native and scanned descriptions share the same segment parser without copying values from a reference document.
 - Resolve pdf-lib to its self-contained ESM distribution in Vite for both server and client; embedding its helpers avoids the legacy tslib CommonJS default interop failure in multipage OCR.
 - Vite-based dependency tests must use a temporary isolated cacheDir; sharing the live preview's optimized-dependency cache breaks dynamic route imports.
+- GeoConfronto server-function PDF ingestion performs one OCR page per authenticated request and stages server-produced pages in the document until all pages pass completeness checks; short requests prevent a cancelled long POST from losing the entire transcription.

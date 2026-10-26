@@ -65,6 +65,9 @@ export function normalizarOcr(text: string): string {
       // símbolos comumente confundidos com @ entre partes de um e-mail
       .replace(/([A-Za-z0-9._%+-]{2,})\s*[©øΘ⊙]\s*([A-Za-z0-9-]+\.[A-Za-z]{2,})/g, "$1@$2")
       .replace(/[ \t]+\n/g, "\n")
+      // Some model responses wrap literal codes in Markdown emphasis despite
+      // the transcription-only prompt. Remove markup, not source punctuation.
+      .replace(/\*\*([^*\n]+)\*\*/g, "$1")
   );
 }
 
@@ -77,6 +80,27 @@ export type OcrUsage = {
 
 
 export type OcrResult = { text: string; note?: string; usage?: OcrUsage };
+
+export async function ocrPdfPage(bytes: ArrayBuffer, index: number, fileName = "documento"): Promise<OcrResult & { pageCount: number }> {
+  const { PDFDocument, PDFName, PDFDict, PDFRawStream, PDFNumber } = await import("pdf-lib");
+  const pdf = await PDFDocument.load(bytes.slice(0));
+  const pageCount = pdf.getPageCount();
+  if (!Number.isInteger(index) || index < 0 || index >= pageCount) throw new Error("Página inválida para releitura.");
+  const part = await PDFDocument.create();
+  const [page] = await part.copyPages(pdf, [index]);
+  if (!page) throw new Error("Não foi possível separar a página para leitura.");
+  part.addPage(page);
+  const objects = page.node.Resources()?.lookupMaybe(PDFName.of("XObject"), PDFDict);
+  const images = objects?.entries().map(([, ref]) => part.context.lookup(ref))
+    .filter((obj): obj is import("pdf-lib").PDFRawStream => obj instanceof PDFRawStream && obj.dict.get(PDFName.of("Subtype"))?.toString() === "/Image") ?? [];
+  const image = images.length === 1 ? images[0] : undefined;
+  const fullScan = image && image.dict.get(PDFName.of("Filter"))?.toString() === "/DCTDecode" &&
+    (image.dict.lookupMaybe(PDFName.of("Width"), PDFNumber)?.asNumber() ?? 0) > 600 &&
+    (image.dict.lookupMaybe(PDFName.of("Height"), PDFNumber)?.asNumber() ?? 0) > 600;
+  const saved = fullScan ? image.getContents() : await part.save();
+  const result = await transcribeDocument(new Uint8Array(saved).buffer, fullScan ? "jpg" : "pdf", `${fileName}-pagina-${index + 1}`, { geoconfronto: true });
+  return { ...result, pageCount };
+}
 
 export async function ocrDocument(
   bytes: ArrayBuffer,

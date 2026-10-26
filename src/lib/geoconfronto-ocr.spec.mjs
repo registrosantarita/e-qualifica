@@ -3,12 +3,18 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { parseMemorial } from "./memorial-parser.ts";
 import { needsGeoconfrontoOcr } from "./geoconfronto-text-quality.ts";
-import { ocrDocument } from "./ocr.server.ts";
+import { ocrDocument, ocrPdfPage, normalizarOcr } from "./ocr.server.ts";
 import { PDFDocument } from "pdf-lib";
 
 const fixture = (name) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
 const prose = fixture("pedacinho-prosa.txt");
 const sigef = fixture("pedacinho-sigef.txt");
+
+test("ênfase acrescentada pelo OCR não esconde códigos de vértices do parser", () => {
+  const input = prose.replace(/FAF-M-1856/g, "**FAF-M-1856**");
+  assert.equal(normalizarOcr(input), prose);
+  assert.equal(parseMemorial(normalizarOcr(input)).segments.length, 16);
+});
 
 test("digitalizado e SIGEF: 16 trechos com todas as distâncias e azimutes coincidentes", () => {
   const a = parseMemorial(prose), b = parseMemorial(sigef);
@@ -64,6 +70,35 @@ test("OCR interrompido não aceita uma transcrição parcial", async () => {
     const result = await ocrDocument(new Uint8Array(await pdf.save()).buffer, "pdf", "teste", { geoconfronto: true });
     assert.equal(result.text, "");
     assert.match(result.note, /interrompida/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.LOVABLE_API_KEY; else process.env.LOVABLE_API_KEY = originalKey;
+  }
+});
+
+test("OCR por etapa envia somente a página solicitada e informa o total sem completar as outras", async () => {
+  const originalFetch = globalThis.fetch, originalKey = process.env.LOVABLE_API_KEY;
+  process.env.LOVABLE_API_KEY = "test-key";
+  let calls = 0;
+  globalThis.fetch = async (_url, init) => {
+    calls++;
+    const body = JSON.parse(init.body);
+    const file = body.messages[1].content.find(c => c.type === "file").file;
+    assert.equal(file.filename, "teste-pagina-2.pdf");
+    const bytes = Uint8Array.from(atob(file.file_data.split(",")[1]), c => c.charCodeAt(0));
+    assert.equal((await PDFDocument.load(bytes)).getPageCount(), 1);
+    return new Response(JSON.stringify({ choices: [{ message: { content: "Texto da segunda página" }, finish_reason: "stop" }] }));
+  };
+  try {
+    const pdf = await PDFDocument.create();
+    for (let index = 0; index < 3; index++) pdf.addPage();
+    const bytes = new Uint8Array(await pdf.save()).buffer;
+    const result = await ocrPdfPage(bytes, 1, "teste");
+    assert.equal(result.pageCount, 3);
+    assert.equal(result.text, "Texto da segunda página");
+    assert.equal(calls, 1);
+    await assert.rejects(() => ocrPdfPage(bytes, 3, "teste"), /Página inválida/);
+    assert.equal(calls, 1);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.LOVABLE_API_KEY; else process.env.LOVABLE_API_KEY = originalKey;

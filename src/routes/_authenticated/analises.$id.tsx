@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   processDocument,
+  readDocumentOcrPage,
   runComparison,
   runLotBatchComparison,
 } from "@/lib/registral.functions";
@@ -103,7 +104,17 @@ function AnaliseDetalhe() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const extrair = useServerFn(processDocument);
+  const iniciarExtracao = useServerFn(processDocument);
+  const lerPaginaOcr = useServerFn(readDocumentOcrPage);
+  async function extrair(input: { data: { documentId: string } }) {
+    const result = await iniciarExtracao(input);
+    if (!("ocrRequired" in result) || !result.ocrRequired) return result;
+    for (let pageIndex = 0; pageIndex < result.pageCount; pageIndex++) {
+      const page = await lerPaginaOcr({ data: { documentId: input.data.documentId, pageIndex } });
+      if (!page.ok) return { ok: false as const, message: page.message };
+    }
+    return iniciarExtracao({ data: { ...input.data, finalizeOcr: true } });
+  }
   const comparar = useServerFn(runComparison);
   const conferirLoteALote = useServerFn(runLotBatchComparison);
 
@@ -404,9 +415,10 @@ function AnaliseDetalhe() {
 
   const reprocessar = useMutation({
     mutationFn: (documentId: string) => extrair({ data: { documentId } }),
-    onSuccess: () => {
+    onSuccess: (res) => {
       refreshDocs();
-      toast.success("Documento reprocessado.");
+      if (res.ok) toast.success(`Documento reprocessado: ${res.segments} segmento(s).`);
+      else toast.error(res.message);
     },
     onError: (e: Error) => toast.error(e.message),
   });
