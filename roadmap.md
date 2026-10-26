@@ -1,5 +1,5 @@
 # Tarefas
-- [ ] Corrigir falha de importação PDF (__extends), conferir os dois memoriais do Sítio Boa Vista e testar o caminho de OCR multipágina.
+- [x] Corrigir falha de importação PDF (__extends): leitor ESM autocontido, OCR real dos dois memoriais Boa Vista conferido (8 trechos/coordenadas, 67.970 m², 1.246,72 m), testes multipágina e regressões; conferência pela tela bloqueada por sessão indisponível e ausência de conta correspondente ao solicitante.
 - [x] Corrigir extração dos três PDFs do Sítio Santa Rita: 109 trechos e coordenadas por fonte; leitura por página, colunas completas e códigos inconsistentes sinalizados, sem forçar coincidências. Verificação autenticada indisponível: nenhuma conta corresponde ao solicitante.
 - [x] Corrigir leitura do memorial digitalizado da Chácara Pedacinho do Céu e conferir medidas contra o SIGEF: 16 trechos recuperados na leitura real e 19 testes aprovados; altitude FAF-M-1856 difere nos originais (714,050 / 714,5 m).
 - [x] Preservar todas as casas decimais das coordenadas do GeoConfronto na leitura, apresentação e exportação; regressões passaram, inspeção de análise autenticada depende de login na prévia.
