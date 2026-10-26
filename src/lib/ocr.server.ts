@@ -65,6 +65,9 @@ export function normalizarOcr(text: string): string {
       // símbolos comumente confundidos com @ entre partes de um e-mail
       .replace(/([A-Za-z0-9._%+-]{2,})\s*[©øΘ⊙]\s*([A-Za-z0-9-]+\.[A-Za-z]{2,})/g, "$1@$2")
       .replace(/[ \t]+\n/g, "\n")
+      // Some model responses wrap literal codes in Markdown emphasis despite
+      // the transcription-only prompt. Remove markup, not source punctuation.
+      .replace(/\*\*([^*\n]+)\*\*/g, "$1")
   );
 }
 
