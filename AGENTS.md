@@ -21,3 +21,4 @@
 - GeoConfronto validates prose and tabular text-layer coverage, uses sequential page-sized OCR for multi-page PDFs and rejects incomplete rereads without automatic retry loops; other modules keep their extraction policy to avoid silent partial polygons.
 - A repeated memorial page heading must not split a single explicitly started walking description into child parcels; only independent descriptions produce children, preserving continuity across page boundaries.
 - Prose walking extraction accepts abbreviated coordinate labels, hemisphere suffixes and optional "de" before distances, so native and scanned descriptions share the same segment parser without copying values from a reference document.
+- Resolve pdf-lib to its self-contained ESM distribution in Vite for both server and client; embedding its helpers avoids the legacy tslib CommonJS default interop failure in multipage OCR.
