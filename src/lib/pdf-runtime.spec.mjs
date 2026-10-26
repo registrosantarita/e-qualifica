@@ -2,10 +2,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 test("bundled ESM PDF reader splits a three-page scanned memorial without tslib default interop", async () => {
+  const cacheDir = await mkdtemp(join(tmpdir(), "pdf-runtime-test-"));
   const server = await createServer({
     configFile: false,
+    cacheDir,
     root: fileURLToPath(new URL("../../", import.meta.url)),
     appType: "custom",
     server: { middlewareMode: true },
@@ -36,5 +41,6 @@ test("bundled ESM PDF reader splits a three-page scanned memorial without tslib 
     if (originalKey === undefined) delete process.env.LOVABLE_API_KEY;
     else process.env.LOVABLE_API_KEY = originalKey;
     await server.close();
+    await rm(cacheDir, { recursive: true, force: true });
   }
 });
