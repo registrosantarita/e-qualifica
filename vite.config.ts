@@ -7,6 +7,7 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   tanstackStart: {
@@ -15,6 +16,15 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    resolve: {
+      // This self-contained ESM distribution embeds its TypeScript helpers.
+      // The package entry reaches tslib 1.x's CJS default facade, which can
+      // become undefined when bundled for the server's OCR page-splitting path.
+      alias: [{
+        find: /^pdf-lib$/,
+        replacement: fileURLToPath(new URL("./node_modules/pdf-lib/dist/pdf-lib.esm.js", import.meta.url)),
+      }],
+    },
     plugins: [
       mcpPlugin(),
       VitePWA({
