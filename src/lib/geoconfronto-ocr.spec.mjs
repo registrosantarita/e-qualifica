@@ -3,12 +3,18 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { parseMemorial } from "./memorial-parser.ts";
 import { needsGeoconfrontoOcr } from "./geoconfronto-text-quality.ts";
-import { ocrDocument, ocrPdfPage } from "./ocr.server.ts";
+import { ocrDocument, ocrPdfPage, normalizarOcr } from "./ocr.server.ts";
 import { PDFDocument } from "pdf-lib";
 
 const fixture = (name) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
 const prose = fixture("pedacinho-prosa.txt");
 const sigef = fixture("pedacinho-sigef.txt");
+
+test("ênfase acrescentada pelo OCR não esconde códigos de vértices do parser", () => {
+  const input = prose.replace(/FAF-M-1856/g, "**FAF-M-1856**");
+  assert.equal(normalizarOcr(input), prose);
+  assert.equal(parseMemorial(normalizarOcr(input)).segments.length, 16);
+});
 
 test("digitalizado e SIGEF: 16 trechos com todas as distâncias e azimutes coincidentes", () => {
   const a = parseMemorial(prose), b = parseMemorial(sigef);

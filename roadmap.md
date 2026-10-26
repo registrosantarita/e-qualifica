@@ -1,5 +1,5 @@
 # Tarefas
-- [ ] Evitar cancelamento da releitura OCR multipágina em um único pedido; executar etapas por página, validar completude e corrigir retorno de reprocessamento.
+- [x] Substituir o pedido OCR longo cancelado por etapas autenticadas por página; guardar páginas sem aceitar parcial, remover ênfase acrescentada pelo OCR e respeitar falhas no retorno de reprocessamento. PDF real recuperou 8 trechos/coordenadas; testes aprovados. Envio completo na conta do usuário ainda não verificável pela sessão disponível.
 - [x] Corrigir falha de importação PDF (__extends): leitor ESM autocontido, OCR real dos dois memoriais Boa Vista conferido (8 trechos/coordenadas, 67.970 m², 1.246,72 m), testes multipágina e regressões; conferência pela tela bloqueada por sessão indisponível e ausência de conta correspondente ao solicitante.
 - [x] Corrigir extração dos três PDFs do Sítio Santa Rita: 109 trechos e coordenadas por fonte; leitura por página, colunas completas e códigos inconsistentes sinalizados, sem forçar coincidências. Verificação autenticada indisponível: nenhuma conta corresponde ao solicitante.
 - [x] Corrigir leitura do memorial digitalizado da Chácara Pedacinho do Céu e conferir medidas contra o SIGEF: 16 trechos recuperados na leitura real e 19 testes aprovados; altitude FAF-M-1856 difere nos originais (714,050 / 714,5 m).
