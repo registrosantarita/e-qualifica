@@ -68,6 +68,7 @@ import { RelatoriosAnalise } from "@/components/RelatoriosAnalise";
 import { BatchSelection } from "@/components/BatchSelection";
 import { ReportBatchDialog } from "@/components/ReportBatchDialog";
 import { createDocumentArchive, type BatchFormat } from "@/lib/batch-export";
+import { GoogleEarthButton } from "@/components/GoogleEarthButton";
 
 
 export const Route = createFileRoute("/_authenticated/analises/$id")({
@@ -552,7 +553,7 @@ function AnaliseDetalhe() {
   })();
 
   useEffect(() => {
-    if (tipoSugerido) setTipo(tipoSugerido);
+    if (tipoSugerido && tipo !== "overlay" && tipo !== "custom" && tipo !== "boundary_to_boundary") setTipo(tipoSugerido);
   }, [tipoSugerido]);
 
   const documentosVisiveis = (documents.data ?? []).filter(
@@ -1032,6 +1033,7 @@ function AnaliseDetalhe() {
                         <Button variant="outline" size="sm" disabled={reprocessar.isPending} onClick={() => reprocessar.mutate(d.id)}>
                           Reprocessar extração
                         </Button>
+                        {parcel && <GoogleEarthButton parcels={[{ ...parcel, segments: parcel.segments ?? [] }]} allowed={exportacoesLiberadas} />}
                         {admin.data?.admin && (
                           <Button
                             variant="outline"
@@ -1716,6 +1718,7 @@ function AnaliseDetalhe() {
                       >
                         {reprocessarComparacao.isPending && reprocessarComparacao.variables === c.id ? "Reprocessando..." : "Reprocessar"}
                       </Button>
+                      <GoogleEarthButton comparisonId={c.id} allowed={exportacoesLiberadas} />
                       {admin.data?.admin && (
                         <Button
                           variant="ghost"

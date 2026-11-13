@@ -23,6 +23,7 @@ import { DECISAO_LABEL, ehDivergencia, lerDecisao } from "@/lib/finding-review";
 import { souAdmin } from "@/lib/admin.functions";
 import { readOverlay } from "@/lib/overlay-engine";
 import { OverlayResult } from "@/components/OverlayResult";
+import { GoogleEarthButton } from "@/components/GoogleEarthButton";
 
 
 
@@ -344,6 +345,7 @@ function Relatorio() {
           ← Voltar à análise
         </Link>
         <div className="flex items-center gap-2">
+          <GoogleEarthButton comparisonId={id} allowed={exportacoesLiberadas} />
           {exportacoesLiberadas && (
             <>
               <Button size="sm" onClick={baixarPdf}>Baixar relatório (PDF)</Button>

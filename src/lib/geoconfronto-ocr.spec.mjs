@@ -13,7 +13,8 @@ const sigef = fixture("pedacinho-sigef.txt");
 
 test("OCR CSV da matrícula 21.594 não é recusado como planta sem descrição", () => {
   const registry = fixture("monte-alegre-matricula.txt");
-  const rows = registry.split("\n").filter(line => /^DE;LONGITUDE|^[A-Z][\w.-]*\d;-?\d{1,3}°/.test(line));
+  const rows = registry.split("\n").map(line => line.trim().replace(/^\|\s*|\s*\|$/g, "").replace(/\s*\|\s*/g, ";"))
+    .filter(line => /^DE;LONGITUDE|^[A-Z][\w.-]*\d;-?\d{1,3}°/.test(line));
   const csv = 'ÁREA: 307,7068 ha - PERÍMETRO: 9.083,0400 m\n' + rows.join("\n");
   assert.equal(semDescricaoPerimetrica(csv), false);
   const p = parseParcelas(csv, false)[0];
