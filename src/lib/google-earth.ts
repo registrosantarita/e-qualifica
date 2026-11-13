@@ -1,11 +1,13 @@
 import type { ParcelExport, VertexCoordRow } from "./export-registral";
 import { montarKml } from "./export-geometria";
+import { earthGeographicParcel, type EarthUtmReference } from "./earth-utm";
 
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-export function earthKml(parcels: ParcelExport[]): { text: string; lat: number; lon: number } {
+export function earthKml(parcels: ParcelExport[], references: (EarthUtmReference | undefined)[] = []): { text: string; lat: number; lon: number } {
   const placemarks: string[] = [];
   let center: VertexCoordRow | undefined;
-  for (const parcel of parcels) {
+  for (const [index, source] of parcels.entries()) {
+    const parcel = earthGeographicParcel(source, references[index]);
     const raw = parcel.raw_extraction as { vertices?: VertexCoordRow[] } | null;
     const vertices = raw?.vertices ?? [];
     const valid = vertices.filter(v => typeof v.lon === "number" && Number.isFinite(v.lon) && Math.abs(v.lon) <= 180 && typeof v.lat === "number" && Number.isFinite(v.lat) && Math.abs(v.lat) <= 90);
