@@ -2,6 +2,11 @@ import proj4 from "proj4";
 import type { ParcelExport, VertexCoordRow } from "./export-registral";
 
 export type EarthUtmReference = { zone: number; hemisphere: "S" | "N"; datum: "SIRGAS2000" | "WGS84" };
+export function confirmedEarthUtm(reference: unknown): reference is EarthUtmReference {
+  if (!reference || typeof reference !== "object") return false;
+  const r = reference as Record<string, unknown>;
+  return typeof r["zone"] === "number" && Number.isInteger(r["zone"]) && r["zone"] >= 1 && r["zone"] <= 60 && (r["hemisphere"] === "S" || r["hemisphere"] === "N") && (r["datum"] === "SIRGAS2000" || r["datum"] === "WGS84");
+}
 const finite = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 export const geographicVertex = (v: VertexCoordRow) => finite(v.lon) && Math.abs(v.lon) <= 180 && finite(v.lat) && Math.abs(v.lat) <= 90;
 export function needsEarthUtm(parcel: ParcelExport): boolean {
@@ -15,7 +20,7 @@ export function earthGeographicParcel(parcel: ParcelExport, reference?: EarthUtm
   const vertices = (raw?.vertices ?? []).map(v => {
     if (geographicVertex(v) || !finite(v.east) || !finite(v.north)) return v;
     if (!reference) throw new Error("Informe o fuso, hemisfério e datum das coordenadas UTM para converter ao Google Earth.");
-    if (!Number.isInteger(reference.zone) || reference.zone < 1 || reference.zone > 60 || !["S", "N"].includes(reference.hemisphere) || !["SIRGAS2000", "WGS84"].includes(reference.datum)) {
+    if (!confirmedEarthUtm(reference)) {
       throw new Error("Referência UTM inválida; confira fuso (1 a 60), hemisfério e datum.");
     }
     if (v.east < 100000 || v.east > 900000 || v.north < 0 || v.north > 10000000) throw new Error(`Coordenadas UTM do vértice ${v.name} fora dos limites; confira o documento.`);

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import type { ParcelExport } from "@/lib/export-registral";
 import { earthKml } from "@/lib/google-earth";
 import { baixarGeometria } from "@/lib/export-geometria";
-import { needsEarthUtm, type EarthUtmReference } from "@/lib/earth-utm";
+import { confirmedEarthUtm, needsEarthUtm, type EarthUtmReference } from "@/lib/earth-utm";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -23,7 +23,7 @@ export function GoogleEarthButton({ parcels, comparisonId, allowed }: { parcels?
       const confirmed = pending.map((p, index) => {
         if (!needsEarthUtm(p)) return undefined;
         const r = references[index];
-        if (!r?.zone || !r.hemisphere || !r.datum) throw new Error(`Confirme fuso, hemisfério e datum de ${p.label ?? `Documento ${index + 1}`}.`);
+        if (!confirmedEarthUtm(r)) throw new Error(`Confirme fuso, hemisfério e datum de ${p.label ?? `Documento ${index + 1}`}.`);
         return { zone: r.zone, hemisphere: r.hemisphere, datum: r.datum };
       });
       setResult(earthKml(pending, confirmed));
@@ -33,6 +33,7 @@ export function GoogleEarthButton({ parcels, comparisonId, allowed }: { parcels?
   async function prepare() {
     if (!allowed || busy) return;
     setBusy(true);
+    setResult(null);
     try {
       let rows = parcels ?? [];
       if (comparisonId) {
@@ -66,7 +67,7 @@ export function GoogleEarthButton({ parcels, comparisonId, allowed }: { parcels?
             <div className="space-y-1"><Label htmlFor={`earth-datum-${index}`}>Datum</Label><Select value={references[index]?.datum ?? ""} onValueChange={v => setReferences(prev => ({...prev, [index]: {...prev[index], datum: v === "SIRGAS2000" ? "SIRGAS2000" : "WGS84"}}))}><SelectTrigger id={`earth-datum-${index}`}><SelectValue placeholder="Selecionar" /></SelectTrigger><SelectContent><SelectItem value="SIRGAS2000">SIRGAS 2000</SelectItem><SelectItem value="WGS84">WGS 84</SelectItem></SelectContent></Select></div>
           </div>
         </fieldset>)}
-        <Button onClick={confirmUtm}><Globe className="size-4" />Converter para Google Earth</Button>
+        <Button disabled={!pending?.every((p, index) => !needsEarthUtm(p) || confirmedEarthUtm(references[index]))} onClick={confirmUtm}><Globe className="size-4" />Converter para Google Earth</Button>
       </DialogContent>
     </Dialog>
     <Dialog open={!!result} onOpenChange={open => { if (!open) setResult(null); }}><DialogContent><DialogHeader><DialogTitle>Google Earth</DialogTitle><DialogDescription>O Google Earth não importa automaticamente arquivos privados. Baixe o KML e abra-o no Google Earth Pro ou importe-o no Google Earth web. Os documentos originais não serão publicados.</DialogDescription></DialogHeader><div className="flex flex-wrap gap-3"><Button onClick={() => { if (result) baixarGeometria(result.text, "Google-Earth.kml", "application/vnd.google-earth.kml+xml"); }}><Download className="size-4" />Baixar KML</Button><Button variant="outline" onClick={() => { if (result) window.open(`https://earth.google.com/web/search/${result.lat},${result.lon}`, "_blank", "noopener,noreferrer"); }}><ExternalLink className="size-4" />Abrir Google Earth</Button></div></DialogContent></Dialog>
