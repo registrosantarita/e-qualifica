@@ -1034,6 +1034,7 @@ function AnaliseDetalhe() {
                           Reprocessar extração
                         </Button>
                         {parcel && <GoogleEarthButton parcels={[{ ...parcel, segments: parcel.segments ?? [] }]} allowed={exportacoesLiberadas} />}
+                        {parcel && <GoogleEarthButton parcels={[{ ...parcel, segments: parcel.segments ?? [] }]} allowed={exportacoesLiberadas} format="json" />}
                         {admin.data?.admin && (
                           <Button
                             variant="outline"

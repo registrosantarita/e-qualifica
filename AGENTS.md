@@ -30,5 +30,6 @@
 - Batch operations reuse sequential authenticated extraction/deletion calls and browser-generated export buffers; document ZIPs contain one file per extracted parcel, and comparison PDFs share the existing renderer before optional page merging to preserve review evidence and export permissions.
 - Before page-sized OCR, remove explicitly invisible PDF text objects from copied pages while preserving visible text, image compression and page transforms; stale hidden OCR must not contaminate visual rereading.
 - Google Earth handoff converts UTM on an export copy using per-parcel user-confirmed zone, hemisphere and datum; this avoids guessing spatial references or changing extracted coordinates. Points remain points and opening Earth never implies automatic KML import.
+- JSON perimeter exports use RFC 7946 GeoJSON with closed WGS84 rings and source extraction in properties; reuse the UTM confirmation dialog and export permissions to avoid unreferenced polygons.
 - GeoConfronto treats text layers with no walking edges as incomplete, because signature/QR text may hide an image-only memorial; OCR must recover the description before accepting extraction.
 - Numeric urban UTM walks parse explicit origin/arrival edges before generic tables, stop at closure and use E/N labels including (X)/(Y); signature text never supplies vertices or absent geographic coordinates.
