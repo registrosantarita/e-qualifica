@@ -32,6 +32,10 @@ import { exportarRelatorioPdf } from "@/lib/export-registral";
 import { lerTrechos } from "@/components/TrechosConferidos";
 import { DECISAO_LABEL, lerDecisao } from "@/lib/finding-review";
 import { readOverlay } from "@/lib/overlay-engine";
+import { useServerFn } from "@tanstack/react-start";
+import { excluirComparacao } from "@/lib/admin.functions";
+import { BatchSelection } from "./BatchSelection";
+import { ReportBatchDialog } from "./ReportBatchDialog";
 
 type ComparacaoResumo = {
   id: string;
@@ -44,16 +48,19 @@ type ComparacaoResumo = {
 export function RelatoriosAnalise({
   comparacoes,
   podeGerar,
+  podeExcluir = false,
   onExcluido,
 }: {
   comparacoes: ComparacaoResumo[];
   podeGerar: boolean;
+  podeExcluir?: boolean;
   onExcluido?: () => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const [gerando, setGerando] = useState<string | null>(null);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [excluindo, setExcluindo] = useState(false);
+  const excluirFn = useServerFn(excluirComparacao);
 
   const alternar = (id: string) =>
     setSelecionados((s) =>
@@ -61,18 +68,10 @@ export function RelatoriosAnalise({
     );
 
   async function excluirSelecionados() {
+    if (!podeExcluir || !selecionados.length) return;
     setExcluindo(true);
     try {
-      const { error: e1 } = await supabase
-        .from("findings")
-        .delete()
-        .in("comparison_id", selecionados);
-      if (e1) throw e1;
-      const { error } = await supabase
-        .from("comparisons")
-        .delete()
-        .in("id", selecionados);
-      if (error) throw error;
+      for (const id of selecionados) await excluirFn({ data: { comparisonId: id } });
       toast.success(
         selecionados.length === 1
           ? "Relatório excluído."
@@ -86,6 +85,7 @@ export function RelatoriosAnalise({
       );
     } finally {
       setExcluindo(false);
+      onExcluido?.();
     }
   }
 
@@ -190,25 +190,9 @@ export function RelatoriosAnalise({
         ) : (
           <>
           <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelecionados(comparacoes.map((c) => c.id))}
-            >
-              Selecionar todos
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={selecionados.length === 0}
-              onClick={() => setSelecionados([])}
-            >
-              Limpar seleção
-            </Button>
-            <span className="text-xs text-muted-foreground">
-              {selecionados.length} selecionado(s)
-            </span>
-            <AlertDialog>
+            <BatchSelection ids={comparacoes.map(c => c.id)} selected={selecionados} onChange={setSelecionados} label="todas as comparações" disabled={excluindo} />
+            <ReportBatchDialog ids={selecionados.filter(id => comparacoes.some(c => c.id === id))} allowed={podeGerar && !excluindo} />
+            {podeExcluir && <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
                   variant="destructive"
@@ -234,7 +218,7 @@ export function RelatoriosAnalise({
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
-            </AlertDialog>
+            </AlertDialog>}
           </div>
           <ul className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
             {comparacoes.map((c) => {

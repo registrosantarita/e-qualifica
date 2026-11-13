@@ -65,6 +65,9 @@ import {
 import { HelpCircle } from "lucide-react";
 import { EstimativaCreditosArquivo } from "@/components/EstimativaCreditos";
 import { RelatoriosAnalise } from "@/components/RelatoriosAnalise";
+import { BatchSelection } from "@/components/BatchSelection";
+import { ReportBatchDialog } from "@/components/ReportBatchDialog";
+import { createDocumentArchive, type BatchFormat } from "@/lib/batch-export";
 
 
 export const Route = createFileRoute("/_authenticated/analises/$id")({
@@ -140,6 +143,9 @@ function AnaliseDetalhe() {
   const [unidadeArea, setUnidadeArea] = useState<"m2" | "ha">("m2");
   /** Documentos começam recolhidos; a barra de ações permanece acessível. */
   const [openDocs, setOpenDocs] = useState<string[]>([]);
+  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+  const [selectedComparisons, setSelectedComparisons] = useState<string[]>([]);
+  const [batchProgress, setBatchProgress] = useState("");
 
   const analysis = useQuery({
     queryKey: ["analysis", id],
@@ -554,6 +560,57 @@ function AnaliseDetalhe() {
   );
   const exportacoesLiberadas = admin.data?.admin === true ||
     analysis.data?.status === "completed" || analysis.data?.status === "archived";
+  const selectedVisibleDocs = documentosVisiveis.filter(d => selectedDocs.includes(d.id));
+  const selectedVisibleComparisons = (comparisons.data ?? []).filter(c => selectedComparisons.includes(c.id));
+  async function runDocumentBatch(action: "reprocess" | "delete" | BatchFormat) {
+    if (batchProgress || !selectedVisibleDocs.length) return;
+    if (action === "delete" && !admin.data?.admin) return;
+    if (action !== "delete" && action !== "reprocess" && !exportacoesLiberadas) return;
+    if (action === "delete" && !window.confirm(`Excluir definitivamente ${selectedVisibleDocs.length} documento(s) selecionado(s) e seus dados?`)) return;
+    const failures: string[] = [];
+    const completed: string[] = [];
+    try {
+      if (action !== "delete" && action !== "reprocess") {
+        const items = selectedVisibleDocs.flatMap(d => {
+          const rows = poligonosDe(d.id);
+          if (!rows.length) failures.push(`${d.file_name ?? "Documento"}: sem polígono extraído.`);
+          return rows.map(p => ({ id: p.id, name: `${d.file_name ?? "documento"}-${p.label ?? "poligono"}`, parcel: { ...p, segments: p.segments ?? [] } }));
+        });
+        const archive = await createDocumentArchive(items, action, (current, total) => setBatchProgress(`Exportando ${current}/${total}…`));
+        failures.push(...archive.failures);
+        baixarGeometria(archive.bytes, archive.name, "application/zip");
+        toast.success(`${archive.count} arquivo(s) em ${archive.name}.`);
+      } else {
+        for (const [i, d] of selectedVisibleDocs.entries()) {
+          setBatchProgress(`${action === "delete" ? "Excluindo" : "Reprocessando"} ${i + 1}/${selectedVisibleDocs.length}…`);
+          try {
+            if (action === "delete") await excluirDocFn({ data: { documentId: d.id } });
+            else { const result = await extrair({ data: { documentId: d.id } }); if (!result.ok) throw new Error(result.message); result.warnings.forEach(w => toast.warning(`${d.file_name}: ${w}`)); }
+            completed.push(d.id);
+          } catch (e) { failures.push(`${d.file_name}: ${e instanceof Error ? e.message : "Falha"}`); }
+        }
+        toast.success(`${completed.length} documento(s) ${action === "delete" ? "excluído(s)" : "reprocessado(s)"}.`);
+        if (action === "delete") setSelectedDocs(ids => ids.filter(x => !completed.includes(x)));
+      }
+      if (failures.length) toast.warning(`${failures.length} falha(s): ${failures.join("\n")}`, { duration: 12000 });
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha na operação em lote."); }
+    finally { setBatchProgress(""); refreshDocs(); queryClient.invalidateQueries({ queryKey: ["comparisons", id] }); queryClient.invalidateQueries({ queryKey: ["findings-analise", id] }); queryClient.invalidateQueries({ queryKey: ["audit", id] }); }
+  }
+  async function runComparisonBatch(action: "delete" | "reprocess") {
+    if (batchProgress || !selectedVisibleComparisons.length || (action === "delete" && !admin.data?.admin)) return;
+    if (action === "delete" && !window.confirm(`Excluir ${selectedVisibleComparisons.length} comparação(ões)? A exclusão será registrada na auditoria.`)) return;
+    const completed: string[] = [], failures: string[] = [];
+    try {
+      for (const [i, c] of selectedVisibleComparisons.entries()) {
+        setBatchProgress(`${action === "delete" ? "Excluindo" : "Reprocessando"} ${i + 1}/${selectedVisibleComparisons.length}…`);
+        try { if (action === "delete") await excluirCompFn({ data: { comparisonId: c.id } }); else await comparar({ data: { comparisonId: c.id } }); completed.push(c.id); }
+        catch (e) { failures.push(`${c.id.slice(0, 8)}: ${e instanceof Error ? e.message : "Falha"}`); }
+      }
+      toast.success(`${completed.length} comparação(ões) ${action === "delete" ? "excluída(s)" : "reprocessada(s)"}.`);
+      if (action === "delete") setSelectedComparisons(ids => ids.filter(x => !completed.includes(x)));
+      if (failures.length) toast.warning(failures.join("\n"), { duration: 12000 });
+    } finally { setBatchProgress(""); queryClient.invalidateQueries({ queryKey: ["comparisons", id] }); queryClient.invalidateQueries({ queryKey: ["findings-analise", id] }); queryClient.invalidateQueries({ queryKey: ["audit", id] }); }
+  }
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -583,6 +640,7 @@ function AnaliseDetalhe() {
             <RelatoriosAnalise
               comparacoes={comparisons.data ?? []}
               podeGerar={exportacoesLiberadas}
+              podeExcluir={admin.data?.admin === true}
               onExcluido={() => comparisons.refetch()}
             />
           </div>
@@ -842,6 +900,16 @@ function AnaliseDetalhe() {
                 Nenhum documento ingerido até o momento.
               </p>
             ) : (
+              <>
+              <div className="mt-4 space-y-3 border-y border-border py-3">
+                <BatchSelection ids={documentosVisiveis.map(d => d.id)} selected={selectedDocs} onChange={setSelectedDocs} label="todos os documentos" disabled={!!batchProgress} />
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" disabled={!!batchProgress || !selectedVisibleDocs.length} onClick={() => void runDocumentBatch("reprocess")}>Reprocessar selecionados</Button>
+                  {admin.data?.admin && <Button variant="outline" size="sm" className="border-destructive text-destructive" disabled={!!batchProgress || !selectedVisibleDocs.length} onClick={() => void runDocumentBatch("delete")}>Excluir selecionados</Button>}
+                  {exportacoesLiberadas && (["xlsx", "dwg", "kml", "kmz"] as const).map(format => <Button key={format} variant="outline" size="sm" disabled={!!batchProgress || !selectedVisibleDocs.length} onClick={() => void runDocumentBatch(format)}>{format === "xlsx" ? "Matrícula XLSX" : format.toUpperCase()} (ZIP)</Button>)}
+                </div>
+                {batchProgress && <p role="status" className="text-sm">{batchProgress}</p>}
+              </div>
               <Accordion
                 type="multiple"
                 className="mt-4"
@@ -917,6 +985,8 @@ function AnaliseDetalhe() {
                   };
                   return (
                     <AccordionItem key={d.id} value={d.id}>
+                      <div className="flex items-center gap-3">
+                        <Checkbox disabled={!!batchProgress} checked={selectedDocs.includes(d.id)} onCheckedChange={checked => setSelectedDocs(ids => checked === true ? [...new Set([...ids, d.id])] : ids.filter(x => x !== d.id))} aria-label={`Selecionar documento ${d.file_name ?? d.id}`} />
                       <AccordionTrigger className="text-left">
                         <div className="flex w-full flex-wrap items-center gap-3 pr-3">
                           <span className="font-display text-base">
@@ -951,6 +1021,7 @@ function AnaliseDetalhe() {
                           </span>
                         </div>
                       </AccordionTrigger>
+                      </div>
 
                       <div className="flex flex-wrap items-center gap-2 pb-4 text-xs text-muted-foreground">
                         {parcel && (
@@ -1174,6 +1245,7 @@ function AnaliseDetalhe() {
                   );
                 })}
               </Accordion>
+              </>
             )}
           </section>
         </TabsContent>
@@ -1597,6 +1669,11 @@ function AnaliseDetalhe() {
 
           <section>
             <h2 className="text-xl">Comparações realizadas</h2>
+            {(comparisons.data ?? []).length > 0 && <div className="mt-4 space-y-3 border-y border-border py-3">
+              <BatchSelection ids={(comparisons.data ?? []).map(c => c.id)} selected={selectedComparisons} onChange={setSelectedComparisons} label="todas as comparações" disabled={!!batchProgress} />
+              <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={!!batchProgress || !selectedVisibleComparisons.length} onClick={() => void runComparisonBatch("reprocess")}>Reprocessar selecionadas</Button>{admin.data?.admin && <Button variant="outline" className="border-destructive text-destructive" size="sm" disabled={!!batchProgress || !selectedVisibleComparisons.length} onClick={() => void runComparisonBatch("delete")}>Excluir selecionadas</Button>}<ReportBatchDialog ids={selectedVisibleComparisons.map(c => c.id)} allowed={exportacoesLiberadas && !batchProgress} /></div>
+              {batchProgress && <p role="status" className="text-sm">{batchProgress}</p>}
+            </div>}
             {(comparisons.data ?? []).length === 0 ? (
               <p className="mt-4 text-sm text-muted-foreground">
                 Nenhuma comparação registrada.
@@ -1606,11 +1683,12 @@ function AnaliseDetalhe() {
                 {comparisons.data!.map((c) => {
                   const cls = CLASSIFICACAO[c.classification ?? "inconclusive"]!;
                   return (
-                    <li key={c.id} className="flex items-start gap-2">
+                    <li key={c.id} className="flex flex-wrap items-start gap-2">
+                      <Checkbox className="mt-5" disabled={!!batchProgress} checked={selectedComparisons.includes(c.id)} onCheckedChange={checked => setSelectedComparisons(ids => checked === true ? [...new Set([...ids, c.id])] : ids.filter(x => x !== c.id))} aria-label={`Selecionar comparação ${c.id.slice(0, 8)}`} />
                       <Link
                         to="/comparacoes/$id"
                         params={{ id: c.id }}
-                        className="panel block flex-1 p-5 transition-colors hover:border-accent"
+                        className="panel block min-w-0 flex-1 p-5 transition-colors hover:border-accent"
                       >
                         <div className="flex flex-wrap items-center gap-3">
                           <span className="font-display text-base">

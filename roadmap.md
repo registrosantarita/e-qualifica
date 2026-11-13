@@ -1,4 +1,7 @@
 # Tarefas
+- [x] Selecionar documentos individualmente/todos, reprocessar e excluir em lote; XLSX/DWG/KML/KMZ separados em ZIP por comando.
+- [x] Selecionar comparações individualmente/todas, excluir/reprocessar em lote e escolher PDFs individuais ou único PDF; arquivos e controles visuais testados.
+- [ ] Conferir ações em lote com documentos/comparações reais na conta do solicitante; bloqueado por sessão ausente e conta não encontrada para acesso de teste.
 - [x] Adicionar Sobreposição: área total versus duas glebas, lacunas/sobreposição/extrapolação, vértices externos e novos vértices destacados; resultado persistido e PDF integrado, testes e visualização desktop/celular conferidos.
 - [ ] Conferir criação e releitura da Sobreposição na conta real; bloqueado por sessão ausente e nenhuma conta correspondente ao solicitante para acesso de teste.
 - [x] Corrigir conjunção “e” capturada na longitude e associar latitude/longitude pelos rótulos da fonte, mantendo a ordem fixa do sistema; 36 testes aprovados, incluindo 109 coordenadas da planta/SIGEF com divergência original preservada. Conferência na análise do usuário indisponível: sessão ausente e conta do solicitante não encontrada para acesso de teste.

@@ -128,10 +128,9 @@ export type MatriculaResultado = {
   confrontacoes: number;
 };
 
-export async function exportarMatriculaXlsx(
+export async function montarMatriculaXlsx(
   parcel: ParcelExport,
-  nomeArquivo: string,
-): Promise<MatriculaResultado> {
+): Promise<MatriculaResultado & { bytes: Uint8Array }> {
   const segs = segmentosOrdenados(parcel);
   const idx = indiceVertices(parcel);
   const sigef = isSigefGeodesico(parcel);
@@ -188,8 +187,7 @@ export async function exportarMatriculaXlsx(
     );
 
 
-    await baixar(wb, nomeArquivo);
-    return { sigef, linhas: perim.length, confrontacoes };
+    return { sigef, linhas: perim.length, confrontacoes, bytes: new Uint8Array(await wb.xlsx.writeBuffer()) };
   }
 
   const ws = wb.addWorksheet("Descrição para Matrícula");
@@ -220,13 +218,12 @@ export async function exportarMatriculaXlsx(
     1,
   );
 
-  await baixar(wb, nomeArquivo);
-  return { sigef, linhas: linhas.length, confrontacoes };
+  return { sigef, linhas: linhas.length, confrontacoes, bytes: new Uint8Array(await wb.xlsx.writeBuffer()) };
 }
 
-async function baixar(wb: ExcelJS.Workbook, nomeArquivo: string) {
-  const buffer = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buffer], {
+export async function exportarMatriculaXlsx(parcel: ParcelExport, nomeArquivo: string): Promise<MatriculaResultado> {
+  const result = await montarMatriculaXlsx(parcel);
+  const blob = new Blob([new Uint8Array(result.bytes)], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
   const url = URL.createObjectURL(blob);
@@ -237,4 +234,5 @@ async function baixar(wb: ExcelJS.Workbook, nomeArquivo: string) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+  return result;
 }

@@ -256,10 +256,9 @@ function withShrink(doc: jsPDF, handler?: (data: any) => void) {
 
 
 
-export function exportarRelatorioPdf(
+export function montarRelatorioPdf(
   input: RelatorioPdfInput,
-  nomeArquivo: string,
-): void {
+): jsPDF {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const toleranciaNumerica = (key: string) => {
     const value = input.tolerancias[key];
@@ -564,7 +563,11 @@ export function exportarRelatorioPdf(
     );
   }
 
-  doc.save(nomeArquivo);
+  return doc;
+}
+
+export function exportarRelatorioPdf(input: RelatorioPdfInput, nomeArquivo: string): void {
+  montarRelatorioPdf(input).save(nomeArquivo);
 }
 
 export { TIPO_COMPARACAO };
