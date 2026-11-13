@@ -213,10 +213,12 @@ const UTM_NE_RE =
   /\bN(?:orte)?\s*[:=]?\s*(\d{1,2}[.\s]?\d{3}[.\s]?\d{3}(?:[.,]\d+)?)\s*m?\b[\s,;]*(?:e\s*)?\bE(?:ste|Leste)?\s*[:=]?\s*(\d{3}[.\s]?\d{3}(?:[.,]\d+)?)/i;
 const UTM_EN_RE =
   /\bE(?:ste|Leste)?\s*[:=]?\s*(\d{3}[.\s]?\d{3}(?:[.,]\d+)?)\s*m?\b[\s,;]*(?:e\s*)?\bN(?:orte)?\s*[:=]?\s*(\d{1,2}[.\s]?\d{3}[.\s]?\d{3}(?:[.,]\d+)?)/i;
-const LAT_RE =
-  /\blat(?:itude)?\s*[:=]?\s*(-?\d{1,3}\s*(?:[°ºo]\s*\d{1,2}\s*['\u2019\u2018\u00B4\u0060\u2032]\s*[\d.,]+\s*["\u201D\u2033]?\s*[NSns]?|[.,]\d+)\s*[NSns]?)/i;
-const LON_RE =
-  /\blong?(?:itude)?\s*[:=]?\s*(-?\d{1,3}\s*(?:[°ºo]\s*\d{1,2}\s*['\u2019\u2018\u00B4\u0060\u2032]\s*[\d.,]+\s*["\u201D\u2033]?\s*[EWOewo]?|[.,]\d+)\s*[EWOewo]?)/i;
+// An isolated hemisphere is part of the coordinate; Portuguese “e Latitude”
+// or “e Altitude” is a separator, never an east-hemisphere suffix.
+const GEO_HEMISPHERE = String.raw`(?:\s*[NSEWO]\b(?!\s*(?:Lat(?:itude)?|Long?(?:itude)?|Alt(?:itude)?)\b))?`;
+const GEO_VALUE = String.raw`-?\d{1,3}(?:\s*[°ºo]\s*\d{1,2}\s*[${APOS}]\s*[\d.,]+\s*[${SEC}]?|[.,]\d+)`;
+const LAT_RE = new RegExp(String.raw`\blat(?:itude)?\s*[:=]?\s*(${GEO_VALUE}${GEO_HEMISPHERE})`, "i");
+const LON_RE = new RegExp(String.raw`\blong?(?:itude)?\s*[:=]?\s*(${GEO_VALUE}${GEO_HEMISPHERE})`, "i");
 
 /** Converte "23°45'12,3\" S" ou "-23,7534" em grau decimal com sinal. */
 export function parseGeoCoord(raw: string): number | null {
@@ -392,7 +394,8 @@ type StructuredParse = {
 };
 
 const COORD_DMS = String.raw`-?\d{1,3}\s*[°ºo]\s*\d{1,2}\s*[${APOS}]\s*[\d.,]+\s*[${SEC}]?`;
-const PROSE_COORD = String.raw`${COORD_DMS}(?:\s*[NSEWO]\b)?`;
+const PROSE_COORD = String.raw`${GEO_VALUE}${GEO_HEMISPHERE}`;
+const LABELED_GEO_PAIR = String.raw`(?:Long(?:itude)?\s*:?\s*${PROSE_COORD}\s*(?:,|;|\be\b)?\s*Lat(?:itude)?\s*:?\s*${PROSE_COORD}|Lat(?:itude)?\s*:?\s*${PROSE_COORD}\s*(?:,|;|\be\b)?\s*Long(?:itude)?\s*:?\s*${PROSE_COORD})`;
 
 /** Memorial SIGEF/INCRA em tabela: código, long, lat, altitude, vante, azimute, distância. */
 const SIGEF_ROW_RE = new RegExp(
@@ -405,35 +408,51 @@ function parseSigefTable(rawText: string): StructuredParse | null {
   const coords = new Map<string, VertexCoord>();
   const ocrFixes: string[] = [];
   const altByVertex = new Map<string, number | null>();
+  let schema: ColKind[] | null = null;
 
   for (const line of rawText.split(/\r?\n/)) {
+    const header = headerKinds(line);
+    if (header?.includes("lon") && header.includes("lat") && !/\d{1,3}\s*[°ºo]/.test(line)) {
+      schema = header;
+      continue;
+    }
+    // Keep SIGEF's robust row/measure parser, but only for its row shape.
+    // Arbitrarily rearranged columns belong to the generic header parser.
+    if (schema && !(schema[0] === "vertex" &&
+      ((schema[1] === "lon" && schema[2] === "lat") ||
+       (schema[1] === "lat" && schema[2] === "lon")) &&
+      schema[3] === "alt" && schema[4] === "vante" &&
+      schema[5] === "azimuth" && schema[6] === "distance")) continue;
     const m = SIGEF_ROW_RE.exec(line.trim());
     if (!m) continue;
-    const [, from, lonRaw, latRaw, altRaw, to, azRaw, distRaw, tail] = m;
-    const key = from!.toUpperCase();
-    const alt = parseNumber(altRaw!);
+    const [, from, firstCoord, secondCoord, altRaw, to, azRaw, distRaw, tail] = m;
+    if (!from || !firstCoord || !secondCoord || !altRaw || !to || !azRaw || !distRaw) continue;
+    const lonRaw = schema?.[1] === "lat" ? secondCoord : firstCoord;
+    const latRaw = schema?.[1] === "lat" ? firstCoord : secondCoord;
+    const key = from.toUpperCase();
+    const alt = parseNumber(altRaw);
     altByVertex.set(key, alt);
     coords.set(key, {
       name: key,
-      lon: parseGeoCoord(lonRaw!),
-      lat: parseGeoCoord(latRaw!),
+      lon: parseGeoCoord(lonRaw),
+      lat: parseGeoCoord(latRaw),
       lon_raw: lonRaw?.trim() ?? null,
       lat_raw: latRaw?.trim() ?? null,
       alt,
       north: null,
       east: null,
     });
-    const az = parseAzimuthText(azRaw!);
-    const dist = parseNumberOcr(distRaw!);
+    const az = parseAzimuthText(azRaw);
+    const dist = parseNumberOcr(distRaw);
     if (dist.corrigido) ocrFixes.push(dist.corrigido);
     const confrontante = tail
       ? cleanConfrontante(tail.split("|").pop()!.trim())
       : null;
     segments.push({
       seq: segments.length + 1,
-      from_vertex: from!,
-      to_vertex: to!,
-      bearing_text: azRaw!.trim(),
+      from_vertex: from,
+      to_vertex: to,
+      bearing_text: azRaw.trim(),
       azimuth_deg: az === null ? null : normalizeAzimuth(az),
       distance_m: dist.value,
       altitude_from_m: alt,
@@ -485,8 +504,8 @@ const HEADER_KINDS: { re: RegExp; kind: ColKind }[] = [
 ];
 
 const DMS_TOKEN_RE = new RegExp(
-  String.raw`-?\d{1,3}\s*[°ºo]\s*\d{1,2}\s*[${APOS}]\s*(?:[\d.,]+\s*[${SEC}]?)?\s*[NSEWOnsewo]?`,
-  "g",
+  String.raw`-?\d{1,3}\s*[°ºo]\s*\d{1,2}\s*[${APOS}]\s*(?:[\d.,]+\s*[${SEC}]?)?${GEO_HEMISPHERE}`,
+  "gi",
 );
 
 /** Divide a linha em células, preservando tokens em grau/minuto/segundo. */
@@ -510,7 +529,13 @@ function tokenizeRow(line: string): string[] {
 }
 
 function headerKinds(line: string): ColKind[] | null {
-  const cells = tokenizeRow(line);
+  let cells = tokenizeRow(line);
+  // Native PDFs can flatten every heading to a single space. Read the
+  // heading labels as complete columns, excluding their units/edition text.
+  if (!/[|;\t]|\s{2,}/.test(line) && !/\d{1,3}\s*[°ºo]/.test(line)) {
+    const labels = line.match(/\b(?:longitude|latitude|long?|lat|altitude|alt|altura|cota|vante|para|de|v[ée]rtice(?:\s+final)?|c[óo]digo|ponto|marco|estaca|norte|leste|este|azim(?:ute)?\.?|rumo|dist(?:[âa]ncia)?\.?|confrontantes?)\b/gi);
+    if (labels && labels.length >= 3) cells = labels;
+  }
   if (cells.length < 3) return null;
   const kinds = cells.map<ColKind>((c) => {
     for (const h of HEADER_KINDS) if (h.re.test(c)) return h.kind;
@@ -718,7 +743,8 @@ function parseMeasureTable(rawText: string): StructuredParse | null {
         (!lonCell && !latCell)) continue;
     }
     const row = kinds
-      ? (rowFromKinds(cells, kinds, line) ?? rowByHeuristics(cells, line))
+      ? (rowFromKinds(cells, kinds, line) ??
+         (kinds.includes("lon") || kinds.includes("lat") ? null : rowByHeuristics(cells, line)))
       : rowByHeuristics(cells, line);
     if (row) rows.push(row);
   }
@@ -778,7 +804,7 @@ const SEP = String.raw`\s*(?:,|;|\be\b)?\s*`;
  */
 const DEG_OCR = String.raw`[°º\u00BA\u02DA\u00B0oO0q9*]`;
 const PROSE_SEG_RE = new RegExp(
-  String.raw`(\d{1,3}\s*${DEG_OCR}\s*\d{1,2}(?:\s*[${APOS}](?:\s*[\d.,]+\s*[${SEC}]?)?)?)\s*(?:e|,)\s*(?:de\s+)?(${OCR_DIGIT_TOKEN})\s*(?:m|metros)\s*at[ée]\s+(?:o\s+)?(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\s*,?\s*(?:(?:de\s+coordenadas\s*)?\(?\s*Long(?:itude)?\s*:?\s*(${PROSE_COORD})${SEP}Lat(?:itude)?\s*:?\s*(${PROSE_COORD})(?:${SEP}Altitude\s*:?\s*(-?[\d.,]+))?)?`,
+  String.raw`(\d{1,3}\s*${DEG_OCR}\s*\d{1,2}(?:\s*[${APOS}](?:\s*[\d.,]+\s*[${SEC}]?)?)?)\s*(?:e|,)\s*(?:de\s+)?(${OCR_DIGIT_TOKEN})\s*(?:m|metros)\s*at[ée]\s+(?:o\s+)?(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\s*,?\s*(?:(?:de\s+coordenadas\s*)?\(?\s*(${LABELED_GEO_PAIR})(?:${SEP}Altitude\s*:?\s*(-?[\d.,]+))?)?`,
   "gi",
 );
 
@@ -790,7 +816,7 @@ function corrigirGrauOcr(raw: string): { texto: string; corrigido: string | null
 }
 
 const PROSE_START_RE = new RegExp(
-  String.raw`(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\s*,?\s*(?:de\s+coordenadas\s*)?\(?\s*Long(?:itude)?\s*:?\s*(${PROSE_COORD})${SEP}Lat(?:itude)?\s*:?\s*(${PROSE_COORD})(?:${SEP}Altitude\s*:?\s*(-?[\d.,]+))?`,
+  String.raw`(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\s*,?\s*(?:de\s+coordenadas\s*)?\(?\s*(${LABELED_GEO_PAIR})(?:${SEP}Altitude\s*:?\s*(-?[\d.,]+))?`,
   "i",
 );
 const PROSE_CONFRONT_RE = /(?:confront(?:ando|a|ante|antes|ação)?\s*(?:-se)?\s*(?:com|:)\s*|segue\s+pela\s+faixa\s+de\s+dom[ií]nio\s+da\s+)([^:;]{2,240}?)(?=,\s*(?:matr[ií]cula|com\s+(?:os?\s+)?seguinte|com\s+largura)|;|:)/gi;
@@ -892,18 +918,18 @@ function parseProseSegments(flat: string): StructuredParse | null {
   const coords = new Map<string, VertexCoord>();
   const registrar = (
     name: string,
-    lonRaw: string,
-    latRaw: string,
+    coordinateText: string,
     altRaw: string | undefined,
   ): number | null => {
     const key = name.toUpperCase();
     const alt = altRaw ? parseNumber(altRaw) : null;
+    const found = extractCoords(coordinateText);
     coords.set(key, {
       name: key,
-      lon_raw: lonRaw.trim(),
-      lat_raw: latRaw.trim(),
-      lon: parseGeoCoord(lonRaw),
-      lat: parseGeoCoord(latRaw),
+      lon_raw: found.lon_raw ?? null,
+      lat_raw: found.lat_raw ?? null,
+      lon: found.lon,
+      lat: found.lat,
       alt,
       north: null,
       east: null,
@@ -912,14 +938,14 @@ function parseProseSegments(flat: string): StructuredParse | null {
   };
 
   let prevName = start[1]!;
-  let prevAlt = registrar(prevName, start[2]!, start[3]!, start[4]);
+  let prevAlt = registrar(prevName, start[2] ?? "", start[3]);
 
   const segments: ParsedSegment[] = [];
   const ocrFixes: string[] = [];
   const dubious: string[] = [];
   PROSE_SEG_RE.lastIndex = 0;
   for (const m of flat.matchAll(PROSE_SEG_RE)) {
-    const [, azRawBruto, distRaw, to, lonRaw, latRaw, altRaw] = m;
+    const [, azRawBruto, distRaw, to, coordinateText, altRaw] = m;
     // Use the last explicitly written vertex, not the last successfully parsed
     // destination: an unreadable leg must not shift every subsequent origin.
     const origin = [...flat.slice(0, m.index).matchAll(/(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w\-.]{1,20})\b/gi)].at(-1)?.[1];
@@ -931,8 +957,8 @@ function parseProseSegments(flat: string): StructuredParse | null {
     if (grau.corrigido) ocrFixes.push(grau.corrigido);
     const azRaw = grau.texto;
     const alt =
-      lonRaw && latRaw
-        ? registrar(to!, lonRaw, latRaw, altRaw)
+      coordinateText && to
+        ? registrar(to, coordinateText, altRaw)
         : (coords.get(to!.toUpperCase())?.alt ?? null);
     const az = parseAzimuthText(azRaw);
     const dist = parseNumberOcr(distRaw!);
