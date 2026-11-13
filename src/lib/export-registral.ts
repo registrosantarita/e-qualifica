@@ -10,6 +10,7 @@ import autoTable from "jspdf-autotable";
 import { coordToDms, degToDms, fmtNum, fmtMedida, CLASSIFICACAO, SEVERIDADE, TIPO_COMPARACAO } from "./labels";
 import { agruparConfrontantes } from "./confrontantes";
 import type { TrechoConferido } from "./comparison-engine";
+import type { OverlayMetrics } from "./overlay-engine";
 
 export type VertexCoordRow = {
   name: string;
@@ -206,6 +207,8 @@ export type RelatorioPdfInput = {
   emitidoEm: string;
   documentoA: string;
   documentoB: string;
+  documentoC?: string | undefined;
+  overlay?: OverlayMetrics | undefined;
   tolerancias: Record<string, number | boolean | undefined>;
   contagens: Record<string, number | undefined>;
   trechos?: TrechoConferido[];
@@ -306,6 +309,7 @@ export function exportarRelatorioPdf(
     body: [
       ["Documento A", input.documentoA],
       ["Documento B", input.documentoB],
+      ...(input.documentoC ? [["Documento C", input.documentoC]] : []),
     ],
     theme: "grid",
     styles: { fontSize: 9, cellPadding: 5 },
@@ -376,6 +380,24 @@ export function exportarRelatorioPdf(
   };
 
   const trechos = input.trechos ?? [];
+  if (input.overlay) {
+    const o = input.overlay;
+    autoTable(doc, {
+      startY: (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20,
+      head: [["Sobreposição", "Área (m²)"]],
+      body: [["Área total", fmtNum(o.totalAreaM2, 6)], ["Gleba 1", fmtNum(o.parcelAreasM2[0] ?? null, 6)], ["Gleba 2", fmtNum(o.parcelAreasM2[1] ?? null, 6)], ["Não coberta", fmtNum(o.gapM2, 6)], ["Sobreposição entre glebas", fmtNum(o.overlapM2, 6)], ["Fora da área total", fmtNum(o.outsideM2, 6)], ["Afastamento do contorno (m)", fmtNum(o.boundaryDeviationM, 6)], ["Referência", o.reference]],
+      theme: "grid", margin: { left: M, right: M }, styles: { fontSize: 9 }, didParseCell: withShrink(doc),
+    });
+    for (const [i, vertices] of o.polygons.entries()) {
+      autoTable(doc, {
+        startY: (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16,
+        head: [[i === 0 ? "Área total" : `Gleba ${i}`, "Latitude / N", "Longitude / E", "Situação"]],
+        body: vertices.map(v => [v.name, v.lat !== null ? coordToDms(v.lat, "lat", v.lat_raw) : fmtNum(v.north, 6), v.lon !== null ? coordToDms(v.lon, "lon", v.lon_raw) : fmtNum(v.east, 6), v.newVertex ? `Novo ${v.external ? "externo" : "interno"}` : v.matched ? "Original coincidente" : "Sem correspondência externa"]),
+        theme: "grid", margin: { left: M, right: M }, styles: { fontSize: 8 },
+        didParseCell: withShrink(doc, data => { if (data.section === "body" && vertices[data.row.index]?.newVertex) data.cell.styles.fillColor = [248, 230, 161]; }),
+      });
+    }
+  }
   if (trechos.length > 0) {
     const primeiro = trechos[0]!;
     const ultimo = trechos[trechos.length - 1]!;

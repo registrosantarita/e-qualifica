@@ -1,0 +1,1 @@
+ALTER TYPE public.comparison_type ADD VALUE IF NOT EXISTS 'overlay';

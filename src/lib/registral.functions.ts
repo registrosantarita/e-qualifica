@@ -14,6 +14,8 @@ import {
   type Tolerances,
 } from "./comparison-engine";
 import { parearFiguras } from "./lote-key";
+import { compareOverlay } from "./overlay-engine";
+import type { ParcelExport } from "./export-registral";
 import {
   compararLoteComBloco,
   extrairBlocosCotados,
@@ -351,6 +353,9 @@ const CompareInput = z.object({
   // vários imóveis (divisa comum conferida dentro de um único documento).
   parcelAId: z.string().uuid().optional(),
   parcelBId: z.string().uuid().optional(),
+  documentCId: z.string().uuid().optional(),
+  parcelCId: z.string().uuid().optional(),
+  planarReferenceConfirmed: z.boolean().optional(),
 
   comparisonType: z.enum([
     "memorial_to_memorial",
@@ -360,6 +365,7 @@ const CompareInput = z.object({
     "boundary_to_boundary",
     "memorial_to_registry",
     "custom",
+    "overlay",
   ]),
   tolerances: z
     .object({
@@ -419,6 +425,9 @@ export const runComparison = createServerFn({ method: "POST" })
         documentBId: previous.document_b_id,
         parcelAId: parcelAId ?? parcelsA[0]?.id,
         parcelBId: parcelBId ?? parcelsB[0]?.id,
+        documentCId: metrics["document_c_id"],
+        parcelCId: metrics["parcel_c_id"],
+        planarReferenceConfirmed: metrics["planar_reference_confirmed"],
         comparisonType: previous.comparison_type,
         tolerances: previous.tolerances,
       });
@@ -427,6 +436,8 @@ export const runComparison = createServerFn({ method: "POST" })
       originalId = previous.id;
     }
     const tol: Tolerances = data.tolerances ?? DEFAULT_TOLERANCES;
+    const selectedAnalysisId = data.analysisId;
+    const selectedType = data.comparisonType;
 
     async function loadParcel(
       documentId: string,
@@ -436,12 +447,14 @@ export const runComparison = createServerFn({ method: "POST" })
       parcel: ParcelInput;
       parcelId: string;
       label: string;
+      geometry: ParcelExport;
     } | null> {
       const { data: doc } = await supabase
         .from("documents")
-        .select("id, file_name, source_type")
+        .select("id, file_name, source_type, analysis_id")
         .eq("id", documentId)
         .single();
+      if (!doc || doc.analysis_id !== selectedAnalysisId) throw new Error("Documento não pertence à análise selecionada.");
       let query = supabase
         .from("parcels")
         .select("*")
@@ -452,6 +465,10 @@ export const runComparison = createServerFn({ method: "POST" })
       const { data: parcelas } = await query.limit(1);
       const parcel = parcelas?.[0];
       if (!parcel) return null;
+      if (selectedType === "overlay" && !parcelId) {
+        const { count } = await supabase.from("parcels").select("id", { count: "exact", head: true }).eq("document_id", documentId);
+        if (count !== 1) throw new Error("Selecione explicitamente o polígono de cada documento com múltiplas descrições.");
+      }
       const { data: segments } = await supabase
         .from("segments")
         .select("*")
@@ -461,6 +478,7 @@ export const runComparison = createServerFn({ method: "POST" })
       return {
         parcelId: parcel.id,
         label: parcel.label ? `${nomeDoc} — ${parcel.label}` : nomeDoc,
+        geometry: { ...parcel, segments: segments ?? [] },
         parcel: {
           label: parcel.label,
           area_m2: parcel.area_m2 === null ? null : Number(parcel.area_m2),
@@ -498,7 +516,7 @@ export const runComparison = createServerFn({ method: "POST" })
     }
 
     const mesmoDocumento = data.documentAId === data.documentBId;
-    if (mesmoDocumento && data.comparisonType !== "boundary_to_boundary") {
+    if (mesmoDocumento && data.comparisonType !== "boundary_to_boundary" && data.comparisonType !== "overlay") {
       throw new Error(
         "Comparar um documento com ele mesmo só é possível no modo divisa comum entre vizinhos.",
       );
@@ -526,12 +544,16 @@ export const runComparison = createServerFn({ method: "POST" })
     if (a.parcelId === b.parcelId) {
       throw new Error("Selecione dois polígonos distintos.");
     }
+    const c = data.comparisonType === "overlay" && data.documentCId ? await loadParcel(data.documentCId, data.parcelCId) : null;
+    if (data.comparisonType === "overlay" && (!c || c.parcelId === a.parcelId || c.parcelId === b.parcelId)) throw new Error("Selecione a área total e duas glebas distintas, com extração concluída.");
 
 
     // Divisa comum entre vizinhos: imóveis distintos, confere-se só o trecho
     // compartilhado (sem área, perímetro total ou reciprocidade de confrontantes).
     const result =
-      data.comparisonType === "boundary_to_boundary"
+      data.comparisonType === "overlay" && c
+        ? compareOverlay([a.geometry, b.geometry, c.geometry], [a.label, b.label, c.label], tol, data.planarReferenceConfirmed)
+        : data.comparisonType === "boundary_to_boundary"
         ? compareSharedBoundary(a.parcel, b.parcel, tol, {
             a: a.label,
             b: b.label,
@@ -552,7 +574,7 @@ export const runComparison = createServerFn({ method: "POST" })
         document_b_id: data.documentBId,
         tolerances: tol,
         summary: result.summary,
-        metrics: { ...result.metrics, parcel_a_id: a.parcelId, parcel_b_id: b.parcelId } as unknown as Json,
+        metrics: { ...result.metrics, parcel_a_id: a.parcelId, parcel_b_id: b.parcelId, ...(c ? { document_c_id: data.documentCId, parcel_c_id: c.parcelId, planar_reference_confirmed: data.planarReferenceConfirmed ?? false } : {}) } as unknown as Json,
         created_by: userId,
       })
       .select("id")

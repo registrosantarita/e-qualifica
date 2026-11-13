@@ -39,6 +39,7 @@ export const CATEGORIA_DOCUMENTO: Record<string, string> = {
 };
 
 export const TIPO_COMPARACAO: Record<string, string> = {
+  overlay: "Sobreposição",
   memorial_to_memorial: "Memorial x Memorial",
   memorial_to_plan: "Memorial x Planta",
   plan_to_plan: "Planta x Planta",

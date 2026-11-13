@@ -1251,6 +1251,7 @@ export type Database = {
         | "memorial_to_plan"
         | "plan_to_plan"
         | "memorial_to_title"
+        | "overlay"
       document_category:
         | "memorial"
         | "matricula"
@@ -1433,6 +1434,7 @@ export const Constants = {
         "memorial_to_plan",
         "plan_to_plan",
         "memorial_to_title",
+        "overlay",
       ],
       document_category: [
         "memorial",

@@ -1,4 +1,6 @@
 # Tarefas
+- [x] Adicionar Sobreposição: área total versus duas glebas, lacunas/sobreposição/extrapolação, vértices externos e novos vértices destacados; resultado persistido e PDF integrado, testes e visualização desktop/celular conferidos.
+- [ ] Conferir criação e releitura da Sobreposição na conta real; bloqueado por sessão ausente e nenhuma conta correspondente ao solicitante para acesso de teste.
 - [x] Corrigir conjunção “e” capturada na longitude e associar latitude/longitude pelos rótulos da fonte, mantendo a ordem fixa do sistema; 36 testes aprovados, incluindo 109 coordenadas da planta/SIGEF com divergência original preservada. Conferência na análise do usuário indisponível: sessão ausente e conta do solicitante não encontrada para acesso de teste.
 - [x] Substituir o pedido OCR longo cancelado por etapas autenticadas por página; guardar páginas sem aceitar parcial, remover ênfase acrescentada pelo OCR e respeitar falhas no retorno de reprocessamento. PDF real recuperou 8 trechos/coordenadas; testes aprovados. Envio completo na conta do usuário ainda não verificável pela sessão disponível.
 - [x] Corrigir falha de importação PDF (__extends): leitor ESM autocontido, OCR real dos dois memoriais Boa Vista conferido (8 trechos/coordenadas, 67.970 m², 1.246,72 m), testes multipágina e regressões; conferência pela tela bloqueada por sessão indisponível e ausência de conta correspondente ao solicitante.
@@ -8,7 +10,7 @@
 - [x] Liberar relatórios e exportações geométricas no GeoConfronto somente após conclusão, exceto para administradores.
 - [x] Permitir reprocessar uma comparação GeoConfronto com os documentos, polígonos e tolerâncias originais, preservando o resultado anterior.
 - [x] Corrigir a leitura dos pontos da análise 91369, sinalizar medidas ambíguas e validar os dois memoriais enviados.
-- [ ] Ajustar checkbox de confrontações junto à Distância; manter ações junto às informações dos documentos, iniciar lista recolhida e oferecer controles gerais de expansão.
+- [x] Ajustar checkbox de confrontações junto à Distância; manter ações junto às informações dos documentos, iniciar lista recolhida e oferecer controles gerais de expansão (implementação existente conferida).
 - [x] Adicionar “Ignorar confrontações” às tolerâncias do GeoConfronto, omitir a conferência de nomes e a seção de confrontações no PDF.
 - [x] Corrigir rodapé de assinatura intercalado ao caminhamento 13→14 na prenotação 91.356 e testar os dois PDFs nativos.
 - [x] Reduzir os quadros das análises do GeoConfronto para aproximadamente um quarto da área, preservando seleção e ações.

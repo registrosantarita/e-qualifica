@@ -135,6 +135,7 @@ function AnaliseDetalhe() {
     { doc: string; parcel: string }[]
   >([{ doc: "", parcel: "" }]);
   const [tipo, setTipo] = useState("memorial_to_memorial");
+  const [planarReferenceConfirmed, setPlanarReferenceConfirmed] = useState(false);
   const [tol, setTol] = useState(DEFAULT_TOLERANCES);
   const [unidadeArea, setUnidadeArea] = useState<"m2" | "ha">("m2");
   /** Documentos começam recolhidos; a barra de ações permanece acessível. */
@@ -441,6 +442,11 @@ function AnaliseDetalhe() {
       const alvos = comparaveis.filter((c) => c.doc);
       if (!docA || alvos.length === 0)
         throw new Error("Selecione o documento paradigma e ao menos um comparável.");
+      if (tipo === "overlay") {
+        const b = alvos[0], c = alvos[1];
+        if (alvos.length !== 2 || !b || !c) throw new Error("Selecione exatamente duas glebas para a sobreposição.");
+        return [await comparar({ data: { analysisId: id, comparisonType: "overlay", documentAId: docA, parcelAId: parcelA || undefined, documentBId: b.doc, parcelBId: b.parcel || undefined, documentCId: c.doc, parcelCId: c.parcel || undefined, planarReferenceConfirmed, tolerances: tol } })];
+      }
       const resultados: { comparisonId: string; classification: string | null }[] = [];
       for (const alvo of alvos) {
         if (alvo.doc === docA && tipo !== "boundary_to_boundary")
@@ -1318,7 +1324,7 @@ function AnaliseDetalhe() {
                     </DialogContent>
                   </Dialog>
                 </div>
-                <Select value={tipo} onValueChange={setTipo}>
+                <Select value={tipo} onValueChange={(value) => { setTipo(value); if (value === "overlay") setComparaveis(lista => [lista[0] ?? { doc: "", parcel: "" }, lista[1] ?? { doc: "", parcel: "" }]); }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1354,11 +1360,12 @@ function AnaliseDetalhe() {
 
             <div className="mt-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-base">Documentos comparáveis</h3>
+                <h3 className="text-base">{tipo === "overlay" ? "Glebas desmembradas (área total no documento A)" : "Documentos comparáveis"}</h3>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
+                  disabled={tipo === "overlay"}
                   onClick={() =>
                     setComparaveis((lista) => [...lista, { doc: "", parcel: "" }])
                   }
@@ -1366,10 +1373,11 @@ function AnaliseDetalhe() {
                   + Adicionar documento
                 </Button>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
+              {tipo !== "overlay" && <p className="mt-2 text-xs text-muted-foreground">
                 Cada documento comparável (B, C, D…) é confrontado com o
                 documento paradigma, gerando uma comparação própria.
-              </p>
+              </p>}
+              {tipo === "overlay" && <div className="mt-4 flex items-center gap-2"><Checkbox id="commonReference" checked={planarReferenceConfirmed} onCheckedChange={v => setPlanarReferenceConfirmed(v === true)} /><Label htmlFor="commonReference">Coordenadas E/N dos três polígonos no mesmo sistema de referência</Label></div>}
 
               <div className="mt-4 space-y-4">
                 {comparaveis.map((c, i) => (
@@ -1379,7 +1387,7 @@ function AnaliseDetalhe() {
                   >
                     <div className="space-y-2">
                       <Label>
-                        Documento {String.fromCharCode(66 + i)}
+                        {tipo === "overlay" ? `Gleba ${i + 1}` : `Documento ${String.fromCharCode(66 + i)}`}
                       </Label>
                       <Select
                         value={c.doc}
@@ -1434,7 +1442,7 @@ function AnaliseDetalhe() {
                       variant="outline"
                       size="sm"
                       className="md:mt-7"
-                      disabled={comparaveis.length === 1}
+                      disabled={comparaveis.length === 1 || tipo === "overlay"}
                       onClick={() =>
                         setComparaveis((lista) =>
                           lista.filter((_, j) => j !== i),

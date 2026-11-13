@@ -21,6 +21,8 @@ import { ValidacaoAchado } from "@/components/ValidacaoAchado";
 import { ValidacoesEmLote } from "@/components/ValidacoesEmLote";
 import { DECISAO_LABEL, ehDivergencia, lerDecisao } from "@/lib/finding-review";
 import { souAdmin } from "@/lib/admin.functions";
+import { readOverlay } from "@/lib/overlay-engine";
+import { OverlayResult } from "@/components/OverlayResult";
 
 
 
@@ -42,6 +44,8 @@ export const Route = createFileRoute("/_authenticated/comparacoes/$id")({
         property: "og:description",
         content: "Achados técnicos rastreáveis da conferência registral.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Relatorio,
@@ -127,6 +131,7 @@ function Relatorio() {
       const ids = [
         comparison.data!.document_a_id,
         comparison.data!.document_b_id,
+        (comparison.data?.metrics as Record<string, unknown> | null)?.["document_c_id"],
       ].filter(Boolean) as string[];
       const { data, error } = await supabase
         .from("documents")
@@ -210,6 +215,7 @@ function Relatorio() {
         .select("id, document_a_id, document_b_id, metrics, created_at")
         .eq("analysis_id", comparison.data!.analysis_id)
         .eq("document_a_id", docAId)
+        .neq("comparison_type", "overlay")
         .order("created_at", { ascending: true });
       if (e1) throw e1;
 
@@ -261,6 +267,7 @@ function Relatorio() {
    const tol = (c.tolerances ?? {}) as Record<string, number | boolean>;
    const tolNumero = (key: string) => typeof tol[key] === "number" ? tol[key] as number : null;
   const metrics = (c.metrics ?? {}) as Record<string, unknown>;
+  const overlay = readOverlay(metrics);
   const counts = (metrics["counts"] ?? {}) as Record<string, number>;
   const trechos = lerTrechos(metrics);
   const extensaoConferida =
@@ -301,6 +308,8 @@ function Relatorio() {
         emitidoEm: new Date(c.created_at).toLocaleString("pt-BR"),
         documentoA: nomeDoc(c.document_a_id),
         documentoB: nomeDoc(c.document_b_id),
+        documentoC: typeof metrics["document_c_id"] === "string" ? nomeDoc(metrics["document_c_id"]) : undefined,
+        overlay,
         tolerancias: tol,
         contagens: counts,
         trechos,
@@ -378,6 +387,7 @@ function Relatorio() {
         </dl>
 
         <h3 className="mt-6 text-base">Tolerâncias adotadas</h3>
+        {typeof metrics["document_c_id"] === "string" && <p className="mt-2 text-sm">Gleba 2: {nomeDoc(metrics["document_c_id"])}</p>}
          {tol["ignoreConfrontations"] === true && (
            <p className="mt-2 text-sm text-muted-foreground">Confrontações ignoradas nesta comparação.</p>
          )}
@@ -413,6 +423,7 @@ function Relatorio() {
       </section>
 
       {(() => {
+        if (c.comparison_type === "overlay") return overlay ? <OverlayResult overlay={overlay} /> : null;
         const temConsolidado = (consolidado.data?.comps.length ?? 0) > 1;
         const tabelaConsolidada = temConsolidado ? (
           <TrechosConsolidados

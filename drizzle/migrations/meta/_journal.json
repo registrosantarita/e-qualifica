@@ -50,6 +50,13 @@
       "when": 1790704553623,
       "tag": "0006_restrict_authorization_rpc_to_logged_in_users",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794600097758,
+      "tag": "0007_add_overlay_comparison",
+      "breakpoints": true
     }
   ]
 }

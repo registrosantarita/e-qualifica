@@ -31,6 +31,7 @@ import { CLASSIFICACAO, TIPO_COMPARACAO, TONE_CLASS } from "@/lib/labels";
 import { exportarRelatorioPdf } from "@/lib/export-registral";
 import { lerTrechos } from "@/components/TrechosConferidos";
 import { DECISAO_LABEL, lerDecisao } from "@/lib/finding-review";
+import { readOverlay } from "@/lib/overlay-engine";
 
 type ComparacaoResumo = {
   id: string;
@@ -106,7 +107,8 @@ export function RelatoriosAnalise({
         .eq("comparison_id", comparacaoId);
       if (e2) throw e2;
 
-      const ids = [c.document_a_id, c.document_b_id].filter(
+      const metrics = (c.metrics ?? {}) as Record<string, unknown>;
+      const ids = [c.document_a_id, c.document_b_id, typeof metrics["document_c_id"] === "string" ? metrics["document_c_id"] : null].filter(
         (v): v is string => !!v,
       );
       const { data: docs } = await supabase
@@ -116,7 +118,6 @@ export function RelatoriosAnalise({
       const nomeDoc = (docId: string | null) =>
         (docs ?? []).find((d) => d.id === docId)?.file_name ?? "Documento";
 
-      const metrics = (c.metrics ?? {}) as Record<string, unknown>;
       const counts = (metrics["counts"] ?? {}) as Record<string, number>;
       const extensao =
         typeof metrics["extensao_conferida_m"] === "number"
@@ -132,6 +133,8 @@ export function RelatoriosAnalise({
           emitidoEm: new Date(c.created_at).toLocaleString("pt-BR"),
           documentoA: nomeDoc(c.document_a_id),
           documentoB: nomeDoc(c.document_b_id),
+          documentoC: typeof metrics["document_c_id"] === "string" ? nomeDoc(metrics["document_c_id"]) : undefined,
+          overlay: readOverlay(metrics),
            tolerancias: (c.tolerances ?? {}) as Record<string, number | boolean>,
           contagens: counts,
           trechos: lerTrechos(metrics),
