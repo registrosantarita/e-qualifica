@@ -1,6 +1,6 @@
 # Tarefas
-- [ ] Explicar a leitura por IA de PDFs de imagem e investigar por que o documento enviado não produziu dados; identificar o arquivo afetado antes de reprocessá-lo.
-- [ ] Conferir CYEP-M-0422 na imagem original da matrícula 21.594, corrigir apenas a latitude comprovada com auditoria, reprocessar a Sobreposição sem mudar tolerâncias e conferir KML atualizado.
+- [x] Corrigir camada só de assinaturas e caminhamento urbano UTM; reler os dois PDFs da Prenotação 91.567 por IA e finalizar páginas salvas: cada um com 4 vértices/trechos, 281,57 m² e 67,58 m. Sem inventar lat/lon ou altitudes; 16 regressões aprovadas e releitura autenticada na tela confirmada.
+- [x] Conferir CYEP-M-0422 na imagem da página 1 da matrícula 21.594: −21°41′01,843″, corrigindo OCR 583 com auditoria. Nova Sobreposição 9aba64d2-f43b-464b-bee7-b6eeb393abfa e KML de 3 polígonos conferidos, histórico/tolerâncias mantidos; lacuna 0,215969 m², excedente 0,314605 m² e desvio 0,002605 m preservados.
 - [x] Melhorar OCR da matrícula 21.594: remover texto invisível defeituoso antes da releitura, transcrever CSV sem números marginais e aceitar tabelas sem prosa; 117 vértices recuperados, regressões aprovadas. Ainda há leitura incerta da latitude CYEP-M-0422, não corrigida por suposição.
 - [x] Reprocessar matrícula e duas glebas da Prenotação 91.538; salvar Sobreposição e conferir releitura do relatório. Resultado incompatível preservado, sem ajustar tolerâncias; CYEP-M-0422 requer conferência humana antes de considerar suas diferenças reais.
 - [x] Adicionar Google Earth nos documentos e comparações: KML privado com pontos/polígonos válidos, abertura do Earth e importação manual explicitada; downloads autenticados conferidos (1 e 3 polígonos), desktop/celular.

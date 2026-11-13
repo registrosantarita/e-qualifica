@@ -1,0 +1,5 @@
+Área: 281,57 m² – Perímetro: 67,58 m
+cuja descrição se inicia no vértice 1 de coordenada Este (X) 243.641,4830 m e Norte (Y) 7.597.928,0850 m, assinalado em planta anexa como segue:
+Do vértice 1 segue até o vértice 2, de coordenada U T M E= 243.656,2492 m e N= 7.597.930,7229 m, no azimute de 79°52’17”, na extensão de 15,00 m; Do vértice 2 segue até o vértice 3, de coordenada U T M E= 243.660,3558 m e N= 7.597.912,3883 m, no azimute de 167°22’31”, na extensão de 18,79 m; Do vértice 3 segue até o vértice 4, de coordenada U T M E= 243.645,5896 m e N= 7.597.909,7504 m, no azimute de 259°52’17”, na extensão de 15,00 m;
+Finalmente do vértice 4 segue até o vértice 1, (início da descrição), no azimute de 347°22’31”, na extensão de 18,79 m, fechando assim o polígono acima descrito, abrangendo uma área de 281,57 m² e um perímetro de 67,58 m.
+

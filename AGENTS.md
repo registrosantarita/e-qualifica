@@ -30,3 +30,5 @@
 - Batch operations reuse sequential authenticated extraction/deletion calls and browser-generated export buffers; document ZIPs contain one file per extracted parcel, and comparison PDFs share the existing renderer before optional page merging to preserve review evidence and export permissions.
 - Before page-sized OCR, remove explicitly invisible PDF text objects from copied pages while preserving visible text, image compression and page transforms; stale hidden OCR must not contaminate visual rereading.
 - Google Earth handoff generates private browser-side KML with valid geographic coordinates; points without walking segments remain points, and opening Earth never implies automatic polygon import.
+- GeoConfronto treats text layers with no walking edges as incomplete, because signature/QR text may hide an image-only memorial; OCR must recover the description before accepting extraction.
+- Numeric urban UTM walks parse explicit origin/arrival edges before generic tables, stop at closure and use E/N labels including (X)/(Y); signature text never supplies vertices or absent geographic coordinates.

@@ -11,6 +11,23 @@ const fixture = (name) => readFileSync(new URL(`./fixtures/${name}`, import.meta
 const prose = fixture("pedacinho-prosa.txt");
 const sigef = fixture("pedacinho-sigef.txt");
 
+test("assinaturas e QR não dispensam OCR da descrição visível apenas na imagem", () => {
+  const signatureOnly = "Prefeitura Municipal da Estância Climática de Santa Rita do Passa Quatro. Verifique a autenticidade através QR CODE. Assinado digitalmente. O processo digital pode ser acessado pelo QR CODE.";
+  assert.equal(needsGeoconfrontoOcr(signatureOnly), true);
+  assert.equal(needsGeoconfrontoOcr(prose), false);
+});
+
+test("memorial urbano 2.918 recupera quatro trechos UTM sem criar coordenadas geográficas", () => {
+  const text = fixture('urban-utm-2918.txt');
+  const parcel = parseParcelas(text + '\nMEMORIAL DESCRITIVO\nRUA VITOR MEIRELES, SALA 5, Nº 875 - SANTA RITA DO PASSA QUATRO', false)[0];
+  assert.deepEqual(parcel.segments.map(s => [s.from_vertex, s.to_vertex, s.distance_m]), [['1','2',15],['2','3',18.79],['3','4',15],['4','1',18.79]]);
+  assert.equal(parcel.vertices.length, 4);
+  assert.equal(parcel.vertices[0].east, 243641.4830);
+  assert.equal(parcel.vertices[0].north, 7597928.0850);
+  assert.ok(parcel.vertices.every(v => v.lat === null && v.lon === null));
+  assert.equal(needsGeoconfrontoOcr(text + '\n[ilegível] rubrica fora do caminhamento'), false);
+});
+
 test("OCR CSV da matrícula 21.594 não é recusado como planta sem descrição", () => {
   const registry = fixture("monte-alegre-matricula.txt");
   const rows = registry.split("\n").map(line => line.trim().replace(/^\|\s*|\s*\|$/g, "").replace(/\s*\|\s*/g, ";"))

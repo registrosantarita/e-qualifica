@@ -210,9 +210,9 @@ const CONFRONT_RE =
 
 // --- Coordenadas de vértice -------------------------------------------------
 const UTM_NE_RE =
-  /\bN(?:orte)?\s*[:=]?\s*(\d{1,2}[.\s]?\d{3}[.\s]?\d{3}(?:[.,]\d+)?)\s*m?\b[\s,;]*(?:e\s*)?\bE(?:ste|Leste)?\s*[:=]?\s*(\d{3}[.\s]?\d{3}(?:[.,]\d+)?)/i;
+  /\bN(?:orte)?\s*(?:\(Y\)\s*)?[:=]?\s*(\d{1,2}[.\s]?\d{3}[.\s]?\d{3}(?:[.,]\d+)?)\s*m?\b[\s,;]*(?:e\s*)?\bE(?:ste|Leste)?\s*(?:\(X\)\s*)?[:=]?\s*(\d{3}[.\s]?\d{3}(?:[.,]\d+)?)/i;
 const UTM_EN_RE =
-  /\bE(?:ste|Leste)?\s*[:=]?\s*(\d{3}[.\s]?\d{3}(?:[.,]\d+)?)\s*m?\b[\s,;]*(?:e\s*)?\bN(?:orte)?\s*[:=]?\s*(\d{1,2}[.\s]?\d{3}[.\s]?\d{3}(?:[.,]\d+)?)/i;
+  /\bE(?:ste|Leste)?\s*(?:\(X\)\s*)?[:=]?\s*(\d{3}[.\s]?\d{3}(?:[.,]\d+)?)\s*m?\b[\s,;]*(?:e\s*)?\bN(?:orte)?\s*(?:\(Y\)\s*)?[:=]?\s*(\d{1,2}[.\s]?\d{3}[.\s]?\d{3}(?:[.,]\d+)?)/i;
 // An isolated hemisphere is part of the coordinate; Portuguese “e Latitude”
 // or “e Altitude” is a separator, never an east-hemisphere suffix.
 const GEO_HEMISPHERE = String.raw`(?:\s*[NSEWO]\b(?!\s*(?:Lat(?:itude)?|Long?(?:itude)?|Alt(?:itude)?)\b))?`;
@@ -1011,6 +1011,37 @@ function parseProseSegments(flat: string): StructuredParse | null {
     : null;
 }
 
+/** Urban UTM prose puts arrival coordinates before the azimuth/distance. */
+function parseNumericUtmWalk(flat: string): StructuredParse | null {
+  const starts = [...flat.matchAll(/\b(?:finalmente\s+)?do\s+v[ée]rtice\s+(\d+)\s+segue\s+at[ée]\s+o\s+v[ée]rtice\s+(\d+)/gi)];
+  if (starts.length < 3) return null;
+  const coords = new Map<string, VertexCoord>();
+  const register = (name: string, value: string) => {
+    const found = extractCoords(value);
+    if (found.north === null || found.east === null) return;
+    coords.set(name, { name, ...found, alt: null });
+  };
+  const initial = /v[ée]rtice\s+(\d+)\s+de\s+coordenada\s+([\s\S]*?)assinalado/i.exec(flat.slice(0, starts[0]?.index));
+  if (initial?.[1] && initial[2]) register(initial[1], initial[2]);
+  const segments: ParsedSegment[] = [];
+  for (let i = 0; i < starts.length; i++) {
+    const match = starts[i];
+    if (!match?.[1] || !match[2]) continue;
+    const chunk = flat.slice(match.index, starts[i + 1]?.index ?? flat.length).split(';')[0] ?? '';
+    const az = AZ_RE.exec(chunk)?.[1];
+    const distance = DIST_RE.exec(chunk)?.[1];
+    if (!az || !distance) continue;
+    register(match[2], chunk.slice(match[0].length));
+    const from = match[1], to = match[2];
+    const confront = new RegExp(`do\\s+v[ée]rtice\\s+${from}\\s+ao\\s+v[ée]rtice\\s+${to}[^;]*?confrontando\\s+com\\s+([^;]+)`, 'i').exec(flat)?.[1];
+    segments.push({ seq: segments.length + 1, from_vertex: from, to_vertex: to,
+      bearing_text: az.trim(), azimuth_deg: parseAzimuthText(az), distance_m: parseNumber(distance),
+      altitude_from_m: null, altitude_to_m: null, confrontante: confront ? cleanConfrontante(confront) : null, raw_text: chunk });
+    if (segments.length >= 3 && to === segments[0]?.from_vertex) break;
+  }
+  return segments.length >= 3 && coords.size >= 3 ? { segments, coords } : null;
+}
+
 export function parseMemorial(text: string): ParsedParcel {
   const warnings: string[] = [];
   const { text: normalizado, aplicadas } = normalizeMemorialText(text);
@@ -1031,7 +1062,7 @@ export function parseMemorial(text: string): ParsedParcel {
 
   const tableParse = parseMeasureTable(normalizado);
   const structured =
-    parseSigefTable(normalizado) ?? parseArrivalSegments(flat) ?? parseProseSegments(flat) ?? tableParse;
+    parseSigefTable(normalizado) ?? parseNumericUtmWalk(flat) ?? parseArrivalSegments(flat) ?? parseProseSegments(flat) ?? tableParse;
 
   if (structured?.warnings?.length) warnings.push(...structured.warnings);
 

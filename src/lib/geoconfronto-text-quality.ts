@@ -4,6 +4,9 @@ import { parseParcelas } from "./multi-parcel";
 export function needsGeoconfrontoOcr(text: string): boolean {
   if (text.trim().length < 40) return true;
   const parcels = parseParcelas(text, false);
+  // Signature/QR text can cover an image-only memorial. A long text layer
+  // without a single walking edge is not a successful extraction.
+  if (!parcels.some(parcel => parcel.segments.length > 0)) return true;
   const table = /longitude[\s\S]{0,100}latitude|latitude[\s\S]{0,100}longitude/i.test(text) &&
     /(?:segmento\s+vante|confronta[çc][õo]es|azim\.?|[âa]ngulo|dist\.?)/i.test(text);
   if (table && !/at[ée]\s+(?:o\s+)?v[ée]rtice/i.test(text)) {
@@ -27,6 +30,8 @@ export function needsGeoconfrontoOcr(text: string): boolean {
   const destinations = [...text.matchAll(/at[ée]\s+(?:atingir\s+)?(?:o\s+)?(?:v[ée]rtice|ponto|marco|estaca)\s+([A-Z0-9][\w.-]*)/gi)];
   if (destinations.length < 3 || !/coordenadas|longitude|latitude/i.test(text)) return false;
   const usable = parcels.flatMap(parcel => parcel.segments).filter((s) => s.to_vertex && s.distance_m !== null && s.azimuth_deg !== null);
+  const planar = parcels.every(p => p.vertices.length >= 3 && p.vertices.every(v => v.north !== null && v.east !== null));
+  if (planar) return usable.length < destinations.length;
   if (usable.length < destinations.length) return true;
   // Missing coordinate punctuation must be re-read, never reconstructed from the other PDF.
   return /\[ileg[ií]vel\]/i.test(text) || parcels.flatMap(p => p.vertices).length < new Set(destinations.map((m) => m[1]?.toUpperCase())).size ||

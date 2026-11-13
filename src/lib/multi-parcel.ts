@@ -144,6 +144,8 @@ export function parseParcelas(text: string, ehGeometria: boolean): ParsedParcel[
   // Repeated page titles are not new parcels: an explicit single walking
   // start with its closing vertex keeps all continuation pages together.
   const walkingStarts = [...text.matchAll(/inicia(?:-se)?\s+(?:a\s+)?descri[çc][ãa]o\s+(?:deste|do)\s+per[ií]metro/gi)];
+  const numericStarts = [...text.matchAll(/descri[çc][ãa]o\s+se\s+inicia\s+no\s+v[ée]rtice\s+\d+\s+de\s+coordenada/gi)];
+  if (numericStarts.length === 1) return [parseMemorial(text)];
   if (walkingStarts.length === 1) return [parseMemorial(text)];
   if (/continua[çc][ãa]o\s+[áa]rea\s+total/i.test(text) && /latitude[\s\S]{0,40}longitude/i.test(text)) {
     return [parseMemorial(text)];
