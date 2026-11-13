@@ -11,6 +11,10 @@ import { pareceLoteamento, parseLoteamento } from "./loteamento-parser";
 export function semDescricaoPerimetrica(texto: string): boolean {
   const linhas = texto.split("\n").filter((l) => l.trim().length > 0);
   if (linhas.length === 0) return true;
+  // Faithful CSV OCR has few whitespace-delimited words even in a complete
+  // walking table. Coordinate rows, not prose density, identify this format.
+  const coordinateRows = linhas.filter(line => /^\s*[A-Z][\w.-]*\d\s*[;|\t]\s*-?\d{1,3}\s*[°º]/i.test(line));
+  if (coordinateRows.length >= 3 && /longitude[\s\S]{0,100}latitude|latitude[\s\S]{0,100}longitude/i.test(texto)) return false;
   const mediaPalavras =
     linhas.reduce((acc, l) => acc + l.trim().split(/\s+/).length, 0) / linhas.length;
   const marcadores =

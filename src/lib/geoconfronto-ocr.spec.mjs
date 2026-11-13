@@ -5,10 +5,22 @@ import { parseMemorial } from "./memorial-parser.ts";
 import { needsGeoconfrontoOcr } from "./geoconfronto-text-quality.ts";
 import { ocrDocument, ocrPdfPage, normalizarOcr } from "./ocr.server.ts";
 import { PDFDocument } from "pdf-lib";
+import { parseParcelas, semDescricaoPerimetrica } from "./multi-parcel.ts";
 
 const fixture = (name) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
 const prose = fixture("pedacinho-prosa.txt");
 const sigef = fixture("pedacinho-sigef.txt");
+
+test("OCR CSV da matrícula 21.594 não é recusado como planta sem descrição", () => {
+  const registry = fixture("monte-alegre-matricula.txt");
+  const rows = registry.split("\n").filter(line => /^DE;LONGITUDE|^[A-Z][\w.-]*\d;-?\d{1,3}°/.test(line));
+  const csv = 'ÁREA: 307,7068 ha - PERÍMETRO: 9.083,0400 m\n' + rows.join("\n");
+  assert.equal(semDescricaoPerimetrica(csv), false);
+  const p = parseParcelas(csv, false)[0];
+  assert.equal(p.vertices.length, 117);
+  assert.equal(p.segments.length, 117);
+  assert.equal(p.vertices[0].lon_raw, `-47°35'21,991"`);
+});
 
 test("ênfase acrescentada pelo OCR não esconde códigos de vértices do parser", () => {
   const input = prose.replace(/FAF-M-1856/g, "**FAF-M-1856**");

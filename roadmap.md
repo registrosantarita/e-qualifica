@@ -1,4 +1,6 @@
 # Tarefas
+- [ ] Melhorar OCR da matrícula 21.594: leitura visual sem camada defeituosa, transcrição tabular fiel e regressões com o PDF enviado.
+- [ ] Reprocessar PDFs e refazer Sobreposição na análise solicitada; conferir salvamento e preservar diferenças reais.
 - [x] Corrigir Sobreposição com os PDFs da matrícula 21.594: reler OCR defeituoso, encerrar tabela no fechamento explícito antes da servidão, reconhecer Ângulo e validar glebas separadamente; 117/149/66 vértices completos, divergências submétricas preservadas. Salvamento na conta permanece bloqueado por sessão indisponível.
 - [x] Selecionar documentos individualmente/todos, reprocessar e excluir em lote; XLSX/DWG/KML/KMZ separados em ZIP por comando.
 - [x] Selecionar comparações individualmente/todas, excluir/reprocessar em lote e escolher PDFs individuais ou único PDF; arquivos e controles visuais testados.

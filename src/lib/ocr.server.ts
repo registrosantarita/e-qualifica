@@ -2,6 +2,7 @@
  * OCR de documentos digitalizados (PDF sem camada de texto e imagens),
  * via Lovable AI Gateway com modelo multimodal.
  */
+import { removeHiddenOcrLayer } from "./pdf-ocr-visual.server";
 
 function toBase64(bytes: ArrayBuffer): string {
   if (bytes.byteLength === 0) {
@@ -68,6 +69,7 @@ export function normalizarOcr(text: string): string {
       // Some model responses wrap literal codes in Markdown emphasis despite
       // the transcription-only prompt. Remove markup, not source punctuation.
       .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+      .replace(/^\s*==\s*(?:Start|End) of OCR for page \d+\s*==\s*$/gim, "")
   );
 }
 
@@ -90,6 +92,7 @@ export async function ocrPdfPage(bytes: ArrayBuffer, index: number, fileName = "
   const [page] = await part.copyPages(pdf, [index]);
   if (!page) throw new Error("Não foi possível separar a página para leitura.");
   part.addPage(page);
+  await removeHiddenOcrLayer(part, page);
   const objects = page.node.Resources()?.lookupMaybe(PDFName.of("XObject"), PDFDict);
   const images = objects?.entries().map(([, ref]) => part.context.lookup(ref))
     .filter((obj): obj is import("pdf-lib").PDFRawStream => obj instanceof PDFRawStream && obj.dict.get(PDFName.of("Subtype"))?.toString() === "/Image") ?? [];
@@ -121,6 +124,7 @@ export async function ocrDocument(
     const [page] = await part.copyPages(pdf, [index]);
     if (!page) return { text: "", ...(usage ? { usage } : {}), note: "Não foi possível separar uma página para leitura." };
     part.addPage(page);
+    await removeHiddenOcrLayer(part, page);
     // A scanned page with one full-page JPEG must be read as an image:
     // passing the PDF can cause a provider to reuse its damaged OCR layer.
     const resources = page.node.Resources();
@@ -165,12 +169,13 @@ async function transcribeDocument(
   const isImage = ext in IMAGE_MIME;
   const mime = IMAGE_MIME[ext] ?? "application/pdf";
   const data = `data:${mime};base64,${toBase64(bytes)}`;
-  const prompt = options.geoconfronto ? `${PROMPT}\n\nPara este memorial: transcreva o corpo impresso de TODAS as páginas em ordem, incluindo tabelas e todas as medidas. Não intercale assinaturas manuscritas, rubricas, carimbos de autenticação, números de página ou páginas contendo somente esses elementos no corpo da descrição. Continue frases e medidas interrompidas pela virada de página. Preserve Long/Lat, hemisférios W/S, altitude e códigos completos. Nunca complete valores a partir de outro documento ou pelo contexto. Leia cada dígito da imagem, não reutilize a camada OCR do PDF. Não omita o último segmento de fechamento. Valores ilegíveis devem permanecer [ilegível].` : PROMPT;
+  const tableRules = "TABELAS: transcreva uma linha física por linha de texto, com células separadas por ponto e vírgula, incluindo o cabeçalho na ordem ORIGINAL das colunas. Não use Markdown nem HTML. Preserve células vazias com dois separadores consecutivos; nunca desloque uma coordenada para outra coluna. Leia cada célula e depois confira visualmente a mesma linha antes de responder. Preserve sinais negativos, todas as casas decimais e zeros finais, °, minutos e segundos. Não confunda 0/O, 1/I, 5/S e 8/B em códigos; não invente dígitos pela sequência. Continue a tabela até a última linha visível, mesmo sem cabeçalho repetido. Números de linhas 5,4,3,2,1 impressos na margem FORA da tabela não são células: não os prefixe à linha nem crie uma coluna adicional. Não transforme uma tabela de confrontações ou servidão em linhas da tabela de coordenadas. Não ajuste medidas para fechar um perímetro. Em campos incertos use [ilegível], sem adivinhar.";
+  const prompt = options.geoconfronto ? `${PROMPT}\n\n${tableRules}\n\nPara este memorial: transcreva o corpo impresso de TODAS as páginas em ordem, incluindo tabelas e todas as medidas. Não intercale assinaturas manuscritas, rubricas, carimbos de autenticação, números de página ou páginas contendo somente esses elementos no corpo da descrição. Continue frases e medidas interrompidas pela virada de página. Preserve Long/Lat, hemisférios W/S, altitude e códigos completos. Nunca complete valores a partir de outro documento ou pelo contexto. Leia cada dígito da imagem, não reutilize a camada OCR do PDF. Não omita o último segmento de fechamento. Valores ilegíveis devem permanecer [ilegível].` : `${PROMPT}\n\n${tableRules}`;
 
   const content = isImage
     ? [
         { type: "text", text: prompt },
-        { type: "image_url", image_url: { url: data } },
+        { type: "image_url", image_url: { url: data, detail: "high" } },
       ]
     : [
         { type: "text", text: prompt },
