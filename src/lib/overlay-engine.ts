@@ -33,7 +33,10 @@ export function compareOverlay(parcels: ParcelExport[], labels: string[], tol: T
   const add = (severity: Finding["severity"], code: string, title: string, description: string, evidence: Record<string, unknown> = {}) => findings.push({ severity, code, title, description, evidence });
   try {
     if (parcels.length !== 3) throw new Error("Selecione uma área total e exatamente duas glebas distintas.");
-    const paths = parcels.map(percurso);
+    const paths = parcels.map((parcel, index) => {
+      try { return percurso(parcel); }
+      catch (error) { throw new Error(`${labels[index] ?? `Polígono ${index + 1}`}: ${error instanceof Error ? error.message : "Caminhamento inválido."} Reprocesse a extração deste documento antes de comparar.`); }
+    });
     if (paths.some(p => !p.closed || p.points.length < 3)) throw new Error("Todos os caminhamentos precisam estar completos e fechados.");
     const all = paths.flatMap(p => p.points);
     const geographic = all.every(p => finite(p.lon) && finite(p.lat) && Math.abs(p.lon) <= 180 && Math.abs(p.lat) <= 90);

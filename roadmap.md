@@ -1,4 +1,5 @@
 # Tarefas
+- [x] Corrigir Sobreposição com os PDFs da matrícula 21.594: reler OCR defeituoso, encerrar tabela no fechamento explícito antes da servidão, reconhecer Ângulo e validar glebas separadamente; 117/149/66 vértices completos, divergências submétricas preservadas. Salvamento na conta permanece bloqueado por sessão indisponível.
 - [x] Selecionar documentos individualmente/todos, reprocessar e excluir em lote; XLSX/DWG/KML/KMZ separados em ZIP por comando.
 - [x] Selecionar comparações individualmente/todas, excluir/reprocessar em lote e escolher PDFs individuais ou único PDF; arquivos e controles visuais testados.
 - [ ] Conferir ações em lote com documentos/comparações reais na conta do solicitante; bloqueado por sessão ausente e conta não encontrada para acesso de teste.

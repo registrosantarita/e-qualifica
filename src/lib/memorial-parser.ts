@@ -460,6 +460,9 @@ function parseSigefTable(rawText: string): StructuredParse | null {
       confrontante,
       raw_text: line.trim().slice(0, 600),
     });
+    // An explicitly closed table is complete. Later rights/confrontation
+    // tables must not append edges to this ring or overwrite its coordinates.
+    if (segments.length >= 3 && to.toUpperCase() === segments[0]?.from_vertex?.toUpperCase()) break;
   }
 
   if (segments.length < 3) return null;
@@ -499,7 +502,7 @@ const HEADER_KINDS: { re: RegExp; kind: ColKind }[] = [
   { re: /altitude|altura|cota|\balt\b|\bh\s*\(m\)/i, kind: "alt" },
   { re: /norte|\bn\s*\(m\)|^n$/i, kind: "north" },
   { re: /este|leste|\be\s*\(m\)|^e$/i, kind: "east" },
-  { re: /azim\.?|rumo|dire[çc][ãa]o/i, kind: "azimuth" },
+  { re: /azim\.?|rumo|dire[çc][ãa]o|[âa]ngulo/i, kind: "azimuth" },
   { re: /dist\.?|extens[ãa]o|comprimento|medida/i, kind: "distance" },
 ];
 
@@ -533,7 +536,7 @@ function headerKinds(line: string): ColKind[] | null {
   // Native PDFs can flatten every heading to a single space. Read the
   // heading labels as complete columns, excluding their units/edition text.
   if (!/[|;\t]|\s{2,}/.test(line) && !/\d{1,3}\s*[°ºo]/.test(line)) {
-    const labels = line.match(/\b(?:longitude|latitude|long?|lat|altitude|alt|altura|cota|vante|para|de|v[ée]rtice(?:\s+final)?|c[óo]digo|ponto|marco|estaca|norte|leste|este|azim(?:ute)?\.?|rumo|dist(?:[âa]ncia)?\.?|confrontantes?)\b/gi);
+    const labels = line.match(/\b(?:longitude|latitude|long?|lat|altitude|alt|altura|cota|vante|para|de|v[ée]rtice(?:\s+final)?|c[óo]digo|ponto|marco|estaca|norte|leste|este|azim(?:ute)?\.?|rumo|[âa]ngulo|dist(?:[âa]ncia)?\.?|confrontantes?)\b/gi);
     if (labels && labels.length >= 3) cells = labels;
   }
   if (cells.length < 3) return null;
@@ -747,6 +750,7 @@ function parseMeasureTable(rawText: string): StructuredParse | null {
          (kinds.includes("lon") || kinds.includes("lat") ? null : rowByHeuristics(cells, line)))
       : rowByHeuristics(cells, line);
     if (row) rows.push(row);
+    if (row && rows.length >= 3 && row.vante?.toUpperCase() === rows[0]?.vertex?.toUpperCase()) break;
   }
 
   if (rows.length < 3) return null;
